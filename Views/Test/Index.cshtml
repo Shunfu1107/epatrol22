@@ -1,0 +1,137 @@
+﻿@{
+    ViewData["Title"] = "Test Form";
+}
+
+<html>
+<body>
+    <h2>@ViewData["Title"]</h2>
+
+    <!-- This div is for testing if the JavaScript works -->
+    <div id="yourElementId" class="someClass">Content here</div>
+
+    <!-- Camera Status Form -->
+    <form id="cameraStatusForm">
+        <div class="form-group">
+            <label for="LocationCameraId">Location Camera ID</label>
+            <input type="text" id="LocationCameraId" name="LocationCameraId2" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Note">Note</label>
+            <input type="text" id="Note" name="Note2" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Description">Description</label>
+            <input type="text" id="Description" name="Description2" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Status">Status</label>
+            <input type="text" id="Status" name="Status2" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="StatusDate">Status Date</label>
+            <input type="datetime-local" id="StatusDate" name="StatusDate2" class="form-control" />
+        </div>
+        <button type="button" id="submitButton" class="btn btn-primary">Save</button>
+    </form>
+
+    <form asp-controller="Test" asp-action="Upload" enctype="multipart/form-data" method="post">
+        <div>
+            <label for="video">选择视频文件：</label>
+            <input type="file" id="video" name="video" accept="video/*" required />
+        </div>
+        <button type="submit">上传</button>
+    </form>
+
+    <br/>
+    <video width="600" controls>
+        <source src="@Url.Action("PlayVideo", "Test", new { id = 18 })" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    @* <video width="600" controls> *@
+    @*     <source src="@Url.Action("PlayVideo", "Test", new { id = 1 })" type="video/mp4"> *@
+    @*     Your browser does not support the video tag. *@
+    @* </video> *@
+
+    @* <video width="600" controls> *@
+    @*     <source src="@Url.Action("PlayVideo", "Test", new { id = 3 })" type="video/mp4"> *@
+    @*     Your browser does not support the video tag. *@
+    @* </video> *@
+
+
+
+    <!-- Success/Error Message Display -->
+    <div id="responseMessage" style="margin-top: 20px;"></div>
+
+    <script>
+        // Ensure JavaScript runs after the DOM is fully loaded
+        document.addEventListener("DOMContentLoaded", function () {
+            var element = document.getElementById("yourElementId");
+            if (element) {
+                element.classList.add("newClass");
+            } else {
+                console.error("元素未找到");
+            }
+        });
+    </script>
+
+    @section Scripts {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                // Submit camera status form via Ajax
+                $('#submitButton').click(function () {
+                    var cameraStatusData = {
+                        LocationCameraId: $('#LocationCameraId').val(),
+                        Note: $('#Note').val(),
+                        Description: $('#Description').val(),
+                        Status: $('#Status').val(),
+                        StatusDate: $('#StatusDate').val()
+                    };
+
+                    // Ajax POST request
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("Create", "Test")', // Ensure this matches your controller action
+                        data: cameraStatusData,
+                        success: function (response) {
+                            if (response.success) {
+                                $('#responseMessage').html('<div class="alert alert-success">' + response.message + '</div>');
+                            } else {
+                                $('#responseMessage').html('<div class="alert alert-danger">' + response.message + '</div>');
+                            }
+                        },
+                        error: function () {
+                            $('#responseMessage').html('<div class="alert alert-danger">Error occurred while saving.</div>');
+                        }
+                    });
+                });
+
+                $('#videoUploadForm').submit(function (e) {
+                    e.preventDefault(); // 防止默认提交
+
+                    var formData = new FormData(this); // 获取表单数据
+
+                    $.ajax({
+                        url: '@Url.Action("Upload", "Test")', // 上传到 TestController 的 Upload 动作
+                        type: 'POST',
+                        data: formData,
+                        processData: false, // 不处理数据
+                        contentType: false, // 不设置 content-type 头
+                        success: function (response) {
+                            if (response.success) {
+                                $('#responseMessage').html('<div class="alert alert-success">视频上传成功！</div>');
+                            } else {
+                                $('#responseMessage').html('<div class="alert alert-danger">' + response.message + '</div>');
+                            }
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            $('#responseMessage').html('<div class="alert alert-danger">视频上传失败！错误信息：' + errorThrown + '</div>');
+                        }
+                    });
+                });
+            });
+        </script>
+    }
+</body>
+</html>

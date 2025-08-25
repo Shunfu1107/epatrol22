@@ -1,0 +1,230 @@
+﻿@page
+@model LoginModel
+
+@{
+    ViewBag.Title = "Admin Portal Login";
+    Layout = null;
+}
+
+@* @section Styles{ *@
+
+@*     <!-- iCheck --> *@
+@*     <link rel="stylesheet" href="~/Assets/Plugins/iCheck/square/blue.css"> *@
+
+@* } *@
+
+@section Scripts {
+
+    <script src="~/Assets/Plugins/jquery-disableAutoFill/jquery.disableAutoFill.js"></script>
+    <script src="~/Assets/Plugins/iCheck/icheck.min.js"></script>
+    <script src="~/Assets/Plugins/bootbox/dist/bootbox.min.js"></script>
+    <script src="~/Assets/Plugins/bootbox/dist/bootbox.locales.min.js"></script>
+
+    <script>
+        $(function () {
+            $('.username').focus();
+            $('input').iCheck({
+                checkboxClass: 'icheckbox_square-blue',
+                radioClass: 'iradio_square-blue',
+                increaseArea: '20%' /* optional */
+            });
+        });
+
+        var input = document.getElementById('pwd');
+
+        // Execute a function when the user releases a key on the keyboard
+        input.addEventListener("keyup", function (event) {
+
+            // Number 13 is the "Enter" key on the keyboard
+            if (event.keyCode === 13) {
+                // Cancel the default action, if needed
+                event.preventDefault();
+                // Trigger the button element with a click
+                document.getElementById("btn_login").click();
+            }
+        });
+    </script>
+
+    <script>
+        $('#loginForm').disableAutoFill({
+            passwordField: '.password',
+            debugMode: false,
+            callback: function () {
+                $('#loginForm').submit();
+            }
+        });
+
+    </script>
+    @Html.Raw(TempData["NoPermission"])
+}
+
+
+@* <div class="login-logo"> *@
+@*     <img src="~/Assets/Image/BS LoginPage Logo.png" width="140" /> *@
+@*     @*<a href="/"><b>Admin</b> Portal</a>*@ 
+@* </div> *@
+
+@* <!-- /.login-logo --> *@
+@* <div class="login-box-body"> *@
+@*     <p class="login-box-msg">Sign in to start your session</p> *@
+@*     <form id="account" method="post"> *@
+
+@*         @Html.AntiForgeryToken() *@
+@*         @Html.ValidationSummary(true) *@
+
+@*         @if (TempData["Message"] != null) *@
+@*         { *@
+@*             <div class="alert alert-warning alert-dismissible"> *@
+@*                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button> *@
+@*                 <h4><i class="icon fa fa-warning" style="padding-right:10px;"></i>Opss.. Sorry!</h4> *@
+@*                 @TempData["Message"] *@
+@*             </div> *@
+@*         } *@
+
+@*         <input type="text" hidden="hidden" autocomplete="off" /> *@
+@*         <input type="password" hidden="hidden" /> *@
+
+@*         <div class="form-group has-feedback"> *@
+@*             @Html.TextBoxFor(u => u.Input.UserName, new { @class = "form-control username", @placeholder = "Username", @autocomplete = "off", name = "username", @Value ="" }) *@
+@*             <span class="error-block">@Html.ValidationMessageFor(u => u.Input.UserName)</span> *@
+@*             <span class="glyphicon glyphicon-user form-control-feedback"></span> *@
+@*         </div> *@
+
+@*         <div class="form-group has-feedback"> *@
+@*             @Html.TextBoxFor(m => m.Input.Password, new { @class = "form-control password", placeholder = "Password", @autocomplete = "off", name = "password", @Value = "", id = "pwd", @type="password" }) *@
+@*             <span class="error-block">@Html.ValidationMessageFor(u => u.Input.Password)</span> *@
+@*             <span class="glyphicon glyphicon-lock form-control-feedback"></span> *@
+@*         </div> *@
+
+@*         <div class="row"> *@
+@*             <div class="col-xs-8"> *@
+@*                 <div class="checkbox icheck"> *@
+@*                     <label> *@
+@*                         @Html.CheckBoxFor(m => m.Input.RememberMe) Remember Me *@
+@*                     </label> *@
+@*                 </div> *@
+@*             </div> *@
+@*             <!-- /.col --> *@
+@*             <div class="col-xs-4"> *@
+@*                 <button type="submit" class="btn btn-primary btn-block btn-flat" id="btn_login">Sign In</button> *@
+@*             </div> *@
+@*             <!-- /.col --> *@
+@*         </div> *@
+
+@*     </form> *@
+@*     <a href="@Url.Action("ForgotPassword", "Account")">I forgot my password</a>.<br> *@
+
+@* </div> *@
+@* <!-- /.login-box-body --> *@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>E Patrol</title>
+    <link rel="stylesheet" type="text/css" href="~/css/style.css" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins:600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a81368914c.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .error-message {
+            display: none;
+            background: #ffebee;
+            color: #d32f2f;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+            .error-message.show {
+                display: block;
+            }
+    </style>
+</head>
+<body>
+    <img class="wave" src="~/Images/wave.png">
+    <div class="bg-container">
+        <div class="img">
+            <img src="~/Images/bg.svg">
+        </div>
+        <div class="login-content">
+            <form method="post" id="loginForm">
+                @Html.AntiForgeryToken()
+                <img src="~/Images/avatar.svg">
+                <h2 class="title">Welcome</h2>
+
+                <!-- Add error message container -->
+                <div id="errorContainer" class="error-message">
+                    <span id="errorText"></span>
+                </div>
+
+                <div class="input-div one">
+                    <div class="i">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="div">
+                        @Html.TextBoxFor(u => u.Input.UserName, new { @class = "form-control username", @placeholder = "Username", @autocomplete = "off", name = "username", @Value = "" })
+                        @Html.ValidationMessageFor(u => u.Input.UserName, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <div class="input-div pass">
+                    <div class="i">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="div">
+                        @Html.TextBoxFor(m => m.Input.Password, new { @class = "form-control password", placeholder = "Password", @autocomplete = "off", name = "password", @Value = "", id = "pwd", @type = "password" })
+                        @Html.ValidationMessageFor(m => m.Input.Password, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <a href="@Url.Page("/Account/ForgotPassword")">Forgot Password?</a>
+                <input type="submit" class="btn" value="Login" />
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="~/js/main.js"></script>
+    <script type="text/javascript">
+        // Function to show error message
+        function showErrorMessage(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorContainer.classList.add('show');
+            // Hide after 5 seconds
+            setTimeout(() => {
+                errorContainer.classList.remove('show');
+            }, 5000);
+        }
+
+        // Check for server-side error message on page load
+        @if (TempData["ErrorMessage"] != null)
+        {
+            @:showErrorMessage('@TempData["ErrorMessage"]');
+        }
+
+        // Form submission handling
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            var username = document.querySelector('.username').value;
+            var password = document.querySelector('.password').value;
+
+            if (!username || !password) {
+                e.preventDefault();
+                showErrorMessage("Please enter both username and password!");
+                return false;
+            }
+        });
+
+        // Enter key submission
+        document.getElementById('pwd').addEventListener('keyup', function(event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                document.getElementById('loginForm').submit();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Models.Epatrol.Route
+@{
+    ViewBag.Title = "Patrol Map";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+    <style>
+        .green-tick {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: green;
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            display: none;
+        }
+    </style>
+}
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('#setCameraBtn').on('click', function () {
+                var routeId = document.getElementById("route").value;
+                var checkpointId = document.getElementById("checkpointId").value;
+                var locationId = document.getElementById("locationId").value;
+                var patrolMapPreview = document.getElementById("patrolMapPreview");
+                var patrolMapModalPreview = document.getElementById("patrolMapModalPreview");
+                patrolMapModalPreview.src = patrolMapPreview.src;
+                patrolMapModalPreview.style.display = patrolMapPreview.style.display;
+                if (routeId) {
+                    $.ajax({
+                        url: '/PatrolMap/GetCamerasByRoute',
+                        type: 'GET',
+                        data: { routeId: routeId },
+                        success: function (response) {
+                            var cameraDropdown = $('#camera');
+                            cameraDropdown.empty();
+                            cameraDropdown.append('<option value="">Select Camera</option>');
+
+                            response.filter(function (camera) {
+                                return camera.locationId == locationId;
+                            }).forEach(function (camera) {
+                                var optionText = `${camera.cameraName} - (${camera.checkPointName})`;
+                                cameraDropdown.append(`<option value="${camera.cameraId}">${optionText}</option>`);
+                            });
+
+                            $('#cameraModal').modal('show');
+                        },
+                        error: function () {
+                            alert('Failed to load cameras.');
+                        }
+                    });
+                }
+            });
+        });
+
+        var currentImageIndex = 0, checkpointImages = [], checkpointIds = [], locationIds = [], groupedByLocation = {};
+
+        function showImage() {
+            var select = document.getElementById("route");
+            var selectedOption = select.options[select.selectedIndex];
+            var patrolMapPreview = document.getElementById("patrolMapPreview");
+            var checkpointCameraTable = document.getElementById("checkpointCameraTable");
+            var tableBody = checkpointCameraTable.querySelector("tbody");
+            var prevButton = document.getElementById("prevButton");
+            var nextButton = document.getElementById("nextButton");
+            var imageIndexSpan = document.getElementById("imageIndex");
+
+            currentImageIndex = 0;
+            tableBody.innerHTML = "";
+
+            var selectedRouteId = selectedOption.value;
+
+            var imagesJson = selectedOption.getAttribute('data-images');
+            var checkpointIdsJson = selectedOption.getAttribute('data-checkpointIds');
+            var locationIdsJson = selectedOption.getAttribute('data-locationIds');
+            checkpointImages = JSON.parse(imagesJson);
+            checkpointIds = JSON.parse(checkpointIdsJson);
+            locationIds = JSON.parse(locationIdsJson);
+
+            groupedByLocation = groupByLocation(checkpointIds, locationIds, checkpointImages);
+
+            if (Object.keys(groupedByLocation).length > 0) {
+                updateImageAndTable(selectedRouteId);
+
+                if (Object.keys(groupedByLocation).length > 1) {
+                    prevButton.style.display = "inline-block";
+                    nextButton.style.display = "inline-block";
+                    imageIndexSpan.style.display = "inline-block";
+                    imageIndexSpan.innerHTML = `${currentImageIndex + 1}`;
+                } else {
+                    prevButton.style.display = "none";
+                    nextButton.style.display = "none";
+                    imageIndexSpan.style.display = "none";
+                }
+
+                setInterval(() => {
+                    const currentLocationId = document.getElementById("locationId").value;
+                    if (currentLocationId) {
+                        drawCameraPoints(currentLocationId);
+                    }
+                }, 1000);
+
+            } else {
+                patrolMapPreview.style.display = "none";
+                checkpointCameraTable.style.display = "none";
+                prevButton.style.display = "none";
+                nextButton.style.display = "none";
+                imageIndexSpan.style.display = "none";
+            }
+        }
+
+        function groupByLocation(checkpointIds, locationIds, checkpointImages) {
+            let grouped = {};
+            for (let i = 0; i < checkpointIds.length; i++) {
+                let locationId = locationIds[i];
+                if (!grouped[locationId]) {
+                    grouped[locationId] = { checkpointIds: [], images: [] };
+                }
+                grouped[locationId].checkpointIds.push(checkpointIds[i]);
+                grouped[locationId].images.push(checkpointImages[i]);
+            }
+            return grouped;
+        }
+
+        function updateImageAndTable(selectedRouteId) {
+            var patrolMapPreview = document.getElementById("patrolMapPreview");
+            var checkpointCameraTable = document.getElementById("checkpointCameraTable");
+            var tableBody = checkpointCameraTable.querySelector("tbody");
+
+            var currentLocationId = Object.keys(groupedByLocation)[currentImageIndex];
+            var currentImages = groupedByLocation[currentLocationId].images;
+            var currentCheckpointIds = groupedByLocation[currentLocationId].checkpointIds;
+
+            var currentImage = currentImages[0];
+            if (currentImage) {
+                patrolMapPreview.src = "data:image/png;base64," + currentImage;
+                patrolMapPreview.style.display = "block";
+            } else {
+                patrolMapPreview.src = "";
+                patrolMapPreview.style.display = "none";
+            }
+
+            document.getElementById("checkpointId").value = currentCheckpointIds[0];
+            document.getElementById("locationId").value = currentLocationId;
+            populateCameraTable(selectedRouteId, currentLocationId);
+        }
+
+        function populateCameraTable(selectedRouteId, selectedLocationId) {
+            var checkpoints = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.RouteCheckpoints));
+
+            var filteredByRoute = checkpoints.filter(cp => cp.RouteId == selectedRouteId);
+
+            var filteredCheckpoints = filteredByRoute.filter(cp => cp.LocationId == selectedLocationId);
+
+            var tableBody = document.querySelector("#checkpointCameraTable tbody");
+
+            tableBody.innerHTML = '';
+
+            filteredCheckpoints.forEach(function (checkpoint) {
+                var row = document.createElement("tr");
+
+                var nameCell = document.createElement("td");
+                nameCell.textContent = checkpoint.CameraName + " - (" + checkpoint.CheckPointName + ")";
+
+                var urlCell = document.createElement("td");
+                urlCell.innerHTML = `<button class="btn btn-primary" onclick="openCameraModal('${checkpoint.CameraUrl}', '${checkpoint.CheckPointId}', this)">View Camera</button>`;
+
+                var deleteCell = document.createElement("td");
+                deleteCell.innerHTML = `<button class="btn btn-danger" onclick="openDeleteModal(${checkpoint.RouteId}, ${checkpoint.CheckPointId}, ${checkpoint.CameraId})">Delete</button>`;
+
+                row.appendChild(nameCell);
+                row.appendChild(urlCell);
+                row.appendChild(deleteCell);
+
+                tableBody.appendChild(row);
+            });
+
+            if (filteredCheckpoints.length > 0) {
+                checkpointCameraTable.style.display = "table";
+            } else {
+                checkpointCameraTable.style.display = "none";
+            }
+
+            drawCameraPoints(selectedLocationId);
+        }
+
+        function nextImage() {
+            if (currentImageIndex < Object.keys(groupedByLocation).length - 1) {
+                currentImageIndex++;
+                var select = document.getElementById("route");
+                var selectedOption = select.options[select.selectedIndex];
+                var selectedRouteId = selectedOption.value;
+                updateImageAndTable(selectedRouteId);
+                
+                var imageIndexSpan = document.getElementById("imageIndex");
+                imageIndexSpan.innerHTML = `${currentImageIndex + 1}`;
+            }
+        }
+
+        function prevImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                var select = document.getElementById("route");
+                var selectedOption = select.options[select.selectedIndex];
+                var selectedRouteId = selectedOption.value;
+                updateImageAndTable(selectedRouteId);
+
+                var imageIndexSpan = document.getElementById("imageIndex");
+                imageIndexSpan.innerHTML = `${currentImageIndex + 1}`;
+            }
+        }
+
+        function drawCameraPoints(currentLocationId) {
+            const patrolMapPreview = document.getElementById("patrolMapPreview");
+            const container = patrolMapPreview.parentElement;
+
+            // Remove any existing icons
+            const oldIcons = container.querySelectorAll(".camera-icon");
+            oldIcons.forEach(el => el.remove());
+
+            const checkpoints = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.RouteCheckpoints));
+            const selectedRouteId = document.getElementById("route").value;
+
+            const filteredCheckpoints = checkpoints.filter(cp => cp.RouteId == selectedRouteId && cp.LocationId == currentLocationId);
+
+            filteredCheckpoints.forEach(cp => {
+                const x = parseFloat(cp.X);
+                const y = parseFloat(cp.Y);
+
+                const imgNaturalWidth = patrolMapPreview.naturalWidth;
+                const imgNaturalHeight = patrolMapPreview.naturalHeight;
+                const imgDisplayWidth = patrolMapPreview.clientWidth;
+                const imgDisplayHeight = patrolMapPreview.clientHeight;
+
+                const scaleX = imgDisplayWidth / imgNaturalWidth;
+                const scaleY = imgDisplayHeight / imgNaturalHeight;
+
+                const displayX = x * scaleX;
+                const displayY = y * scaleY;
+
+                const icon = document.createElement("img");
+                icon.src = "/Images/cam.jpg";
+                icon.className = "camera-icon";
+                icon.style.position = "absolute";
+                icon.style.width = "24px";
+                icon.style.height = "24px";
+                icon.style.left = patrolMapPreview.offsetLeft + displayX - 12 + "px";
+                icon.style.top = patrolMapPreview.offsetTop + displayY - 12 + "px";
+                icon.style.cursor = "pointer";
+                icon.title = cp.CameraName + " - (" + cp.CheckPointName + ")";
+
+                icon.onclick = function () {
+                    openCameraModal(cp.CameraUrl, cp.CheckPointId, icon);
+                };
+
+                container.appendChild(icon);
+            });
+        }
+
+        // function drawCameraPoints(currentLocationId) {
+        //     var patrolMapPreview = document.getElementById("patrolMapPreview");
+        //     var canvas = document.createElement("canvas");
+        //     var ctx = canvas.getContext("2d");
+
+        //     canvas.width = patrolMapPreview.width;
+        //     canvas.height = patrolMapPreview.height;
+
+        //     var img = new Image();
+        //     img.src = patrolMapPreview.src;
+
+        //     img.onload = function () {
+        //         var canvas = document.createElement("canvas");
+        //         var ctx = canvas.getContext("2d");
+
+        //         canvas.width = img.naturalWidth;
+        //         canvas.height = img.naturalHeight;
+
+        //         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        //         var checkpoints = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.RouteCheckpoints));
+        //         var selectedRouteId = document.getElementById("route").value;
+
+        //         var filteredCheckpoints = checkpoints.filter(cp => cp.RouteId == selectedRouteId && cp.LocationId == currentLocationId);
+
+        //         filteredCheckpoints.forEach(cp => {
+        //             var x = parseFloat(cp.X);
+        //             var y = parseFloat(cp.Y);
+
+        //             var scaledX = (x / img.naturalWidth) * canvas.width;
+        //             var scaledY = (y / img.naturalHeight) * canvas.height;
+
+        //             ctx.beginPath();
+        //             ctx.arc(scaledX, scaledY, 5, 0, 2 * Math.PI, false);
+        //             ctx.fillStyle = "green";
+        //             ctx.fill();
+        //             ctx.lineWidth = 1;
+        //             ctx.strokeStyle = "black";
+        //             ctx.stroke();
+
+        //             ctx.font = "18px Arial";
+        //             ctx.fillStyle = "black";
+        //             ctx.fillText(cp.CameraName + " - (" + cp.CheckPointName + ")", scaledX - 6, scaledY - 10);
+        //         });
+
+        //         patrolMapPreview.src = canvas.toDataURL();
+        //     };
+        // }
+
+        var selectedCoordinates = [];
+        var currentTick = null;
+
+        function setPoint(event) {
+            var img = document.getElementById("patrolMapModalPreview");
+            var rect = img.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+
+            var scaleX = img.naturalWidth / rect.width;
+            var scaleY = img.naturalHeight / rect.height;
+
+            var adjustedX = Math.floor(x * scaleX);
+            var adjustedY = Math.floor(y * scaleY);
+
+            if (currentTick) {
+                document.getElementById("patrolMapContainer").removeChild(currentTick);
+            }
+
+            currentTick = document.createElement("div");
+            currentTick.className = "green-tick";
+            currentTick.style.left = (x + 5) + "px";
+            currentTick.style.top = (y + 13) + "px";
+            currentTick.style.display = "block";
+
+            document.getElementById("patrolMapContainer").appendChild(currentTick);
+
+            selectedCoordinates = [{ x: adjustedX, y: adjustedY }];
+            console.log(selectedCoordinates);
+            document.getElementById("saveCameraCoordinatesBtn").disabled = false;
+        }
+
+        $('#cameraModal').on('hidden.bs.modal', function () {
+            if (currentTick) {
+                document.getElementById("patrolMapContainer").removeChild(currentTick);
+                currentTick = null;
+                document.getElementById("saveCameraCoordinatesBtn").disabled = true;
+            }
+        });
+
+        function saveCoordinatesAndCamera() {
+            var cameraId = document.getElementById("camera").value;
+            var routeId = document.getElementById("route").value;
+            var checkPointName = $('#camera option:selected').text().split('-')[1].trim().slice(1, -1);
+            var coord = selectedCoordinates[0];
+            console.log("Saving camera:", cameraId, "on route:", routeId);
+            console.log("Coordinates (X, Y):", coord.x, coord.y);
+
+            $.ajax({
+                url: '/PatrolMap/SaveCameraRouteCheckpoint',
+                type: 'POST',
+                data: JSON.stringify({
+                    routeId: routeId,
+                    cameraId: cameraId,
+                    checkPointName: checkPointName,
+                    coordX: coord.x,
+                    coordY: coord.y
+                }),
+                contentType: 'application/json',
+                success: function (response) {
+                    console.log(response);
+                    if (response.success) {
+                        localStorage.setItem('selectedRouteId', response.routeId);
+                        localStorage.setItem('currentImageIndex', currentImageIndex);
+                        location.reload();
+                    } else {
+                        alert("Failed to save image and camera: " + response.message);
+                    }
+                },
+                error: function (jqXHR) {
+                    console.error(jqXHR.responseText);
+                    alert('Error saving image and camera: ' + jqXHR.responseText);
+                }
+            });
+        }
+
+        document.getElementById("saveCameraCoordinatesBtn").disabled = true;
+
+        let stopAnalyzeVideo;
+
+        function openCameraModal(cameraUrl, checkPointId, button) {
+            button.classList.add('disabled');
+            button.style.pointerEvents = "none"; 
+            button.innerText = "Please wait...";
+
+            console.log('Opening camera stream: ' + cameraUrl);
+            console.log('Check Point Id: ' + checkPointId);
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+
+            fetch(`/PatrolMap/StartCamera?cameraUrl=${encodeURIComponent(cameraUrl)}&checkPointId=${checkPointId}`, {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        if (Hls.isSupported()) {
+                            const hls = new Hls();
+                            hls.loadSource(`/stream/output_camera${checkPointId}.m3u8`);
+                            hls.attachMedia(video);
+                            let playbackStarted = false;
+                            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                                console.log("HLS manifest parsed, starting playback.");
+                                resetButton(button);
+                                video.style.display = 'block';
+                                video.play();
+                                playbackStarted = true;
+                                stopAnalyzeVideo = analyzeVideo(video, canvas);
+                            }); 
+                            hls.on(Hls.Events.ERROR, function (event, data) {
+                                console.error("HLS error:", data);
+                                resetButton(button);
+                                if (!playbackStarted) {
+                                    alert("Camera is not connected. Please check the power supply or cable connection.");
+                                }
+                            });
+                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                            video.src = `/stream/output_camera${checkPointId}.m3u8`;
+                            console.log("Playing video using native HLS support.");
+                            resetButton(button);
+                            video.style.display = 'block';
+                            video.play();
+
+                            stopAnalyzeVideo = analyzeVideo(video, canvas);
+                        }
+                        $('#cameraViewModal').modal('show');
+                    } else {
+                        resetButton(button);
+                        console.error("Error starting FFmpeg process.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                    resetButton(button);
+                });
+        }
+
+        function analyzeVideo(video, canvas) {
+            const context = canvas.getContext('2d');
+            let analyzing = true;
+
+            function checkFrame() {
+                if (!analyzing) {
+                    console.log("Stopping video analysis.");
+                    return;
+                }
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+                    let totalBrightness = 0;
+                    let edgeCount = 0;
+
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        const r = pixels[i];
+                        const g = pixels[i + 1];
+                        const b = pixels[i + 2];
+                        const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        totalBrightness += brightness;
+
+                        if (i < pixels.length - 4) {
+                            const nextBrightness = 0.299 * pixels[i + 4] + 0.587 * pixels[i + 5] + 0.114 * pixels[i + 6];
+                            if (Math.abs(brightness - nextBrightness) > 50) {
+                                edgeCount++;
+                            }
+                        }
+                    }
+
+                    const avgBrightness = totalBrightness / (pixels.length / 4);
+                    if (avgBrightness < 10) {
+                        alert("The camera view is dark. Please check the camera.");
+                        return;
+                    }
+                    console.log(edgeCount);
+                    const edgeThreshold = 2000;
+                    if (edgeCount < edgeThreshold) {
+                        alert("The camera view is blurry. Please check the camera.");
+                        return;
+                    }
+                }
+
+                // Continue the loop
+                requestAnimationFrame(checkFrame);
+            }
+
+            checkFrame();
+
+            return () => {
+                analyzing = false;
+            };
+        }
+
+        function resetButton(button) {
+            button.classList.remove('disabled');
+            button.style.pointerEvents = "auto";
+            button.innerText = "View Camera";
+        }
+
+        $('#cameraViewModal').on('hidden.bs.modal', function () {
+            fetch(`/PatrolMap/StopCamera`, {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        console.log("FFmpeg process stopped successfully.");
+                    } else {
+                        console.error("Error stopping FFmpeg process.");
+                    }
+                })
+                .catch(error => console.error("Fetch error:", error));
+
+            // Stop the video analysis
+            if (stopAnalyzeVideo) {
+                stopAnalyzeVideo();
+            }
+        });
+
+        function openDeleteModal(routeId, checkpointId, cameraId) {
+            $('#deleteRouteId').val(routeId);
+            $('#deleteCheckpointId').val(checkpointId);
+            $('#deleteCameraId').val(cameraId);
+
+            $('#deleteCameraModal').modal('show');
+        }
+
+        $(document).ready(function () {
+            $('#deleteCameraForm').on('submit', function (event) {
+                event.preventDefault();
+
+                var routeId = $('#deleteRouteId').val();
+                var checkpointId = $('#deleteCheckpointId').val();
+                var cameraId = $('#deleteCameraId').val();
+
+                $.ajax({
+                    url: '/PatrolMap/DeleteCamera',
+                    type: 'POST',
+                    data: JSON.stringify({
+                        RouteId: routeId,
+                        CheckPointId: checkpointId,
+                        CameraId: cameraId
+                    }),
+                    contentType: 'application/json',
+                    success: function (response) {
+                        if (response.success) {
+                            $('#deleteCameraModal').modal('hide');
+                            localStorage.setItem('selectedRouteId', response.routeId);
+                            localStorage.setItem('currentImageIndex', currentImageIndex);
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                        alert('An error occurred while deleting the camera.');
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            var storedRouteId = localStorage.getItem('selectedRouteId');
+            var storedImageIndex = localStorage.getItem('currentImageIndex');
+
+            if (storedRouteId) {
+                $('#route').val(storedRouteId).trigger('change');
+
+                if (storedImageIndex !== null) {
+                    currentImageIndex = parseInt(storedImageIndex);
+
+                    var imageIndexSpan = document.getElementById("imageIndex");
+                    imageIndexSpan.innerHTML = `${currentImageIndex + 1}`;
+
+                    var select = document.getElementById("route");
+                    var selectedOption = select.options[select.selectedIndex];
+                    var selectedRouteId = selectedOption.value;
+
+                    updateImageAndTable(selectedRouteId);
+                }
+
+                localStorage.removeItem('selectedRouteId');
+                localStorage.removeItem('currentImageIndex');
+            }
+        });
+
+        //Stop FFMpeg Processes
+        window.addEventListener("beforeunload", function (event) {
+            navigator.sendBeacon("/PatrolMap/StopStreaming");
+        });
+    </script>
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patrol Map Page</title>
+    <!--JQuery for Modal Population -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Patrol Map</h3>
+        </div>
+        <hr />
+        <div class="row">
+            <div class="col-md-3" style="margin-left: 3px;">
+                <div style="display: flex; align-items: center;">
+                    <label for="route" style="margin-right: 10px; white-space: nowrap;">Select Route</label>
+                    <select class="form-control" id="route" name="route" style="border-radius: 5px; width: 100%;" onchange="showImage()">
+                        <option value="">Please Select</option>
+                        @if (ViewBag.Routes != null && ((IEnumerable<dynamic>)ViewBag.Routes).Any())
+                        {
+                            foreach (var route in (IEnumerable<dynamic>)ViewBag.Routes)
+                            {
+                                var checkpoints = route.Checkpoints;
+
+                                List<string> checkpointImages = new List<string>();
+                                List<int> checkpointIds = new List<int>();
+                                List<int> locationIds = new List<int>();
+
+                                foreach (var checkpoint in checkpoints)
+                                {
+                                    checkpointIds.Add(checkpoint.CheckPointId);
+                                    locationIds.Add(checkpoint.LocationId ?? 0);
+                                    if (checkpoint.ImageData != null) 
+                                    {
+                                        checkpointImages.Add(checkpoint.ImageData);
+                                        
+                                    }
+                                }
+
+                                // Convert the image data to JSON for embedding in the data attribute
+                                var imagesJson = Newtonsoft.Json.JsonConvert.SerializeObject(checkpointImages);
+                                var checkpointIdsJson = Newtonsoft.Json.JsonConvert.SerializeObject(checkpointIds);
+                                var locationIdsJson = Newtonsoft.Json.JsonConvert.SerializeObject(locationIds);
+
+                                <option value="@route.RouteId" data-images='@imagesJson' data-checkpointIds='@checkpointIdsJson' data-locationIds='@locationIdsJson'>@route.RouteName</option>
+                            }
+                        }
+                        else
+                        {
+                            <option disabled>No route available</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div style="margin-left: 20px;">
+                <input type="hidden" id="checkpointId" name="checkpointId" value="" />
+                <input type="hidden" id="locationId" name="locationId" value="" />
+                <button id="setCameraBtn" class="btn btn-primary" data-toggle="modal" data-target="#cameraModal">Set Camera</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8" style="position: relative;">
+                <div id="imageNavigation" style="text-align: right; margin-bottom: 10px; width: 100%;">
+                    <button id="prevButton" class="btn btn-primary" onclick="prevImage()" style="display: none;">Previous</button>
+                    <span id="imageIndex" class="btn btn-primary" style="display: none; background-color: #f0f0f0; color: #6c757d; border: 1px solid #6c757d;"></span>
+                    <button id="nextButton" class="btn btn-primary" onclick="nextImage()" style="display: none;">Next</button>
+                </div>
+                <img id="patrolMapPreview" src="" alt="Patrol Map" style="display:none; max-width: 100%; height: auto; margin-top: 20px;" />
+            </div>
+            <div class="col-md-4" style="margin-top: 20px;">
+                <table class="table table-bordered" id="checkpointCameraTable" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Camera</th>
+                            <th>Camera View</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Camera and Checkpoint data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for setting camera -->
+    <div class="modal fade" id="cameraModal" tabindex="-1" role="dialog" aria-labelledby="cameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cameraModalLabel">Set Camera</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="patrolMapContainer">
+                    <img id="patrolMapModalPreview" src="" alt="Patrol Map" style="display:none; width: 100%; height: auto;" onclick="setPoint(event)" />
+                    <div id="greenTick" class="green-tick"></div>
+                    <div class="form-group">
+                        <label for="camera">Select Camera</label>
+                        <select class="form-control" id="camera" name="camera">
+                            <option value="">Select Camera</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="text-align: center;">
+                    <button type="button" class="btn btn-primary" id="saveCameraCoordinatesBtn" onclick="saveCoordinatesAndCamera()" disabled>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="modal fade" id="cameraViewModal" tabindex="-1" role="dialog" aria-labelledby="cameraViewModal" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cameraViewModalLabel">Camera View</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <video id="cameraVideo" class="video-js vjs-default-skin" preload="auto" style="width: 100%; height: 100%;"></video>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Camera Modal -->
+    <div class="modal fade" id="deleteCameraModal" tabindex="-1" role="dialog" aria-labelledby="deleteCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCameraModalLabel">Delete Camera</h5>
+                </div>
+                <form id="deleteCameraForm">
+                    <input type="hidden" id="deleteRouteId" name="RouteId" />
+                    <input type="hidden" id="deleteCheckpointId" name="CheckPointId" />
+                    <input type="hidden" id="deleteCameraId" name="CameraId" />
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this Camera?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</html>

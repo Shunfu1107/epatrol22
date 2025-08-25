@@ -1,0 +1,228 @@
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var context = HttpContextAccessor.HttpContext;
+}
+@using AdminPortalV8.Helpers;
+@{
+    string route = ViewContext.RouteData.Values["Action"].ToString();
+    string controller = ViewContext.RouteData.Values["Controller"].ToString();
+}
+<!-- =============================================== -->
+<!-- Left side column. contains the sidebar -->
+@if (context.User.Identity.IsAuthenticated)
+{
+    <aside class="main-sidebar">
+        <!-- sidebar: style can be found in sidebar.less -->
+        <section class="sidebar">
+
+            <!-- sidebar menu: : style can be found in sidebar.less -->
+            <ul class="sidebar-menu" data-widget="tree">
+
+                <!--DashBoard-->
+                <li class="@((controller == "Dashboard") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="@Url.Action("Index", "Dashboard")">
+                        <i class="fa fa-home"></i><span>Dashboard</span>
+                    </a>
+                </li>
+
+                <!--IPCamList-->
+                @* <li class="@((controller == "IPCamList") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="@Url.Action("Index", "IPCamList")">
+                        <i class="fa fa-home"></i><span>IPCam List</span>
+                    </a>
+                </li> *@
+
+                <!--Fire Detection-->
+                <li class="treeview @if (controller == "FireDetection24hrs" || controller == "FireDetectionReport")
+                    {
+                    @("active")
+                    }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="javascript:void(0);"><i class="fa fa-fire"></i><span>Continuous Surveillance</span><i class="fa fa-angle-left pull-right"></i></a>
+                    <ul class="treeview-menu">
+                        <li class="mel-disable @((controller == "FireDetection24hrs") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "FireDetection24hrs")"><i class="fa fa-chevron-right"></i> Schedule Detection</a></li>
+                        @* <li class="mel-disable @((controller == "FireDetectionReport") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "FireDetectionReport")"><i class="fa fa-chevron-right"></i> 24hrs AI Detection Report</a></li> *@
+                        <li class="mel-disable @((controller == "FireDetectionReport2") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "FireDetectionReport2")"><i class="fa fa-chevron-right"></i> Schedule Detection Report</a></li>
+                    </ul>
+                </li>
+
+                <!--E-Patrol Combined-->
+                <li class="treeview @if (
+                            controller == "Route" || controller == "Checkpoints" || controller == "Location" || controller == "Schedule" || controller == "Checklist" ||
+                            controller == "PatrolMap" || controller == "Patrol" ||
+                            controller == "Report2"
+                        )
+                    {
+                        @("active")
+                    }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="javascript:void(0);"><i class="fa fa-shield-alt"></i><span>E-Patrol</span><i class="fa fa-angle-left pull-right"></i></a>
+                    <ul class="treeview-menu">
+
+                        <!-- ePatrol Setting Submenu -->
+                        <li class="treeview @if (controller == "Route" || controller == "Checkpoints" || controller == "Location" || controller == "Schedule" || controller == "Checklist")
+                        {
+                            @("active")
+                            }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="javascript:void(0);"><i class="fa fa-user"></i><span>ePatrol Setting</span><i class="fa fa-angle-left pull-right"></i></a>
+                            <ul class="treeview-menu">
+                                <li class="mel-disable @((controller == "Route") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Route")"><i class="fa fa-chevron-right"></i> Route</a></li>
+                                <li class="mel-disable @((controller == "Checkpoints") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Checkpoints")"><i class="fa fa-chevron-right"></i> Checkpoints</a></li>
+                                <li class="mel-disable @((controller == "Location") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Location")"><i class="fa fa-chevron-right"></i> Location</a></li>
+                                <li class="mel-disable @((controller == "Schedule") ? "active" : "")" data-permission-id="@AppModuleKeys.Role.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Schedule")"><i class="fa fa-chevron-right"></i> Schedule</a></li>
+                                <li class="mel-disable @((controller == "Checklist") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Checklist")"><i class="fa fa-chevron-right"></i> Checklist</a></li>
+                            </ul>
+                        </li>
+
+                        <!--Floor Map Submenu -->
+                        <li class="treeview @if (controller == "FloorMap")
+                        {
+                        @("active")
+                        }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="javascript:void(0);"><i class="fa fa-map-marker"></i><span>Building and Floor Map</span><i class="fa fa-angle-left pull-right"></i></a>
+                            <ul class="treeview-menu">
+                                <li class="mel-disable @((controller == "FloorMap") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "FloorMap")"><i class="fa fa-chevron-right"></i> Floor Map</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Route & Patrol Submenu -->
+                        <li class="treeview @if (controller == "PatrolMap" || controller == "Patrol")
+                        {
+                        @("active")
+                        }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="javascript:void(0);"><i class="fa fa-map-marker"></i><span>Route & Patrol</span><i class="fa fa-angle-left pull-right"></i></a>
+                            <ul class="treeview-menu">
+                                <li class="mel-disable @((controller == "PatrolMap") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "PatrolMap")"><i class="fa fa-chevron-right"></i> Patrol Map</a></li>
+                                <li class="mel-disable @((controller == "Patrol") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Patrol")"><i class="fa fa-chevron-right"></i> Patrol</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Report Submenu -->
+                        <li class="@((controller == "Report2") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="@Url.Action("Index", "Report2")">
+                                <i class="fa fa-file"></i><span>Report</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+
+                <!--ePatrol-->
+                @* <li class="treeview @if (controller == "Route" || controller == "Checkpoints" || controller == "Location" || controller == "Schedule" || controller == "Checklist") *@
+                @* { *@
+                @*     @("active") *@
+                @*     }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                @*     <a href="javascript:void(0);"><i class="fa fa-user"></i><span>ePatrol Setting</span><i class="fa fa-angle-left pull-right"></i></a> *@
+                @*     <ul class="treeview-menu"> *@
+                @*         <li class="mel-disable @((controller == "Route") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Route")"><i class="fa fa-chevron-right"></i> Route</a></li> *@
+                @*         <li class="mel-disable @((controller == "Checkpoints") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Checkpoints")"><i class="fa fa-chevron-right"></i> Checkpoints</a></li> *@
+                @*         <li class="mel-disable @((controller == "Location") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Location")"><i class="fa fa-chevron-right"></i> Location</a></li> *@
+                @*         <li class="mel-disable @((controller == "Schedule") ? "active" : "")" data-permission-id="@AppModuleKeys.Role.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Schedule")"><i class="fa fa-chevron-right"></i> Schedule</a></li> *@
+                @*         <li class="mel-disable @((controller == "Checklist") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Checklist")"><i class="fa fa-chevron-right"></i> Checklist</a></li> *@
+                @*     </ul> *@
+                @* </li> *@
+
+                <!--Patrol-->
+                @* <li class="treeview @if (controller == "PatrolMap" || controller == "Patrol") *@
+                @*     { *@
+                @*     @("active") *@
+                @*     }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                @*     <a href="javascript:void(0);"><i class="fa fa-map-marker"></i><span>Route & Patrol</span><i class="fa fa-angle-left pull-right"></i></a> *@
+                @*     <ul class="treeview-menu"> *@
+                @*         <li class="mel-disable @((controller == "PatrolMap") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "PatrolMap")"><i class="fa fa-chevron-right"></i> Patrol Map</a></li> *@
+                @*         <li class="mel-disable @((controller == "Patrol") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Patrol")"><i class="fa fa-chevron-right"></i> Patrol</a></li> *@
+                @*     </ul> *@
+                @* </li> *@
+
+                <!--Camera-->
+                <li class="treeview @(controller == "Camera" || controller == "Camera1" ||controller == "ScheduleCameraCheck" || controller == "CameraNew" ? "active" : "")"
+                    data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="javascript:void(0);"><i class="fa fa-camera"></i><span>Camera Check</span><i class="fa fa-angle-left pull-right"></i></a>
+                    <ul class="treeview-menu">
+                        <li class="mel-disable @(controller == "Camera1" ? "active" : "")"
+                            data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="@Url.Action("Index", "Camera1")"><i class="fa fa-chevron-right"></i> Camera List</a>
+                        </li>
+                       @*  <li class="mel-disable @(controller == "Camera" ? "active" : "")" 
+                             data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> 
+                             <a href="@Url.Action("Index", "Camera")"><i class="fa fa-chevron-right"></i> Camera List</a> 
+                         </li> 
+                        <li class="mel-disable @(controller == "CameraNew" ? "active" : "")"
+                            data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="@Url.Action("Index", "CameraNew")"><i class="fa fa-chevron-right"></i> Camera List New</a>
+                        </li> *@
+                        <li class="mel-disable @(controller == "ScheduleCameraCheck" ? "active" : "")"
+                            data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="@Url.Action("Index", "ScheduleCameraCheck")"><i class="fa fa-chevron-right"></i> Camera Health Check Scheduler</a>
+                        </li>
+                        @* <li class="mel-disable @(controller == "CameraListView" ? "active" : "")"
+                            data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                            <a href="@Url.Action("Index", "CameraListView")"><i class="fa fa-chevron-right"></i> Camera List View</a>
+                        </li> *@
+                        @* <li class="mel-disable @(controller == "Test" ? "active" : "")" *@
+                        @*     data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                        @*     <a href="@Url.Action("Index", "Test")"><i class="fa fa-chevron-right"></i> Test </a> *@
+                        @* </li> *@
+                    </ul>
+                </li>
+
+                <!--AI Model-->
+                <li class="@((controller == "Model") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="@Url.Action("Index", "Model")">
+                        <i class="fa fa-cog"></i><span>AI Model List</span>
+                    </a>
+                </li>
+
+                <!--Report-->
+                @* <li class="@((controller == "Report") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                @*     <a href="@Url.Action("Index", "Report")"> *@
+                @*         <i class="fa fa-file"></i><span>Report</span> *@
+                @*     </a> *@
+                @* </li> *@
+
+                <!--Report 2 -->
+                @* <li class="@((controller == "Report2") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                @*     <a href="@Url.Action("Index", "Report2")"> *@
+                @*         <i class="fa fa-file"></i><span>Report</span> *@
+                @*     </a> *@
+                @* </li> *@
+
+                <!--Find Missing Person-->
+                @* <li class="@((controller == "Findperson") ? "active" : "")" data-permission-id="@AppModuleKeys.Dashboard.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"> *@
+                @*     <a href="@Url.Action("Index", "Findperson")"> *@
+                @*         <span>Find Missing Person</span> *@
+                @*     </a> *@
+                @* </li> *@
+
+                <!--car-->
+                <li class="treeview @if (controller == "CarPlate" || controller == "CarDirection" || controller == "CarTailgating")
+                {
+                    @("active")
+                    }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="javascript:void(0);"><i class="fa fa-car"></i><span>Car</span><i class="fa fa-angle-left pull-right"></i></a>
+                    <ul class="treeview-menu">
+                        <li class="mel-disable @((controller == "CarPlate") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "CarPlate")"><i class="fa fa-chevron-right"></i> Car Plate Detection</a></li>
+                        <li class="mel-disable @((controller == "CarDirection") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "CarDirection")"><i class="fa fa-chevron-right"></i> Car Direction Detection</a></li>
+                        <li class="mel-disable @((controller == "CarTailgating") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "CarTailgating")"><i class="fa fa-chevron-right"></i> Tailgating Detection</a></li>
+                    </ul>
+                </li>
+
+                <!--Admin Portal-->
+                <li class="treeview @if (controller == "PortalAdmin" || controller == "Module" || controller == "AccessLevel" || controller == "Role")
+               {
+                   @("active")
+                }" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable">
+                    <a href="javascript:void(0);"><i class="fa fa-users"></i> <span>Admins</span><i class="fa fa-angle-left pull-right"></i></a>
+                    <ul class="treeview-menu">
+                        <li class="mel-disable @((controller == "PortalAdmin") ? "active" : "")" data-permission-id="@AppModuleKeys.PortalAdmin.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "PortalAdmin")"><i class="fa fa-chevron-right"></i> Users</a></li>
+                        <li class="mel-disable @((controller == "Module") ? "active" : "")" data-permission-id="@AppModuleKeys.Module.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Module")"><i class="fa fa-chevron-right"></i> Module</a></li>
+                        <li class="mel-disable @((controller == "Role") ? "active" : "")" data-permission-id="@AppModuleKeys.Role.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "Role")"><i class="fa fa-chevron-right"></i> Role</a></li>
+                        <li class="mel-disable @((controller == "AccessLevel") ? "active" : "")" data-permission-id="@AppModuleKeys.AccessLevel.ViewPrimaryKey" data-permission-act="mel-enable|mel-disable"><a href="@Url.Action("Index", "AccessLevel")"><i class="fa fa-chevron-right"></i> Access Level</a></li>
+
+                    </ul>
+                </li>
+
+            </ul>
+        </section>
+        <!-- /.sidebar -->
+    </aside>
+}

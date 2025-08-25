@@ -1,0 +1,167 @@
+﻿@{
+    ViewBag.Title = "Sending Message";
+}  
+@{
+    // var cameras = ViewBag.Cameras as List<AdminPortalV8.Models.Epatrol.Camera>;
+    // var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Page</title>
+    <style>
+        .container {
+            max-width: 100%; /* Ensure the container doesn't exceed the frame */
+            overflow: hidden; /* Prevent content overflow */
+        }
+
+        .row {
+            margin-right: 0; /* Remove unnecessary margins */
+            margin-left: 0;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+            .input-group input, .input-group select {
+                flex: 1;
+                border-right: none;
+            }
+
+            .input-group .btn {
+                border-left: none;
+                border-radius: 0px;
+                background-color: white;
+                border: 16px;
+                outline-color: transparent;
+                outline-style: solid;
+                box-shadow: 0.6px 0px 0px 0.8px #D2D6DE;
+            }
+
+        #applyFiltersButton {
+            margin-top: 10px; /* Add spacing above the button */
+        }
+
+        #cameraCheckResults {
+            padding: 20px;
+            border-radius: 2px;
+        }
+
+            #cameraCheckResults table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+
+            #cameraCheckResults th, #cameraCheckResults td {
+                border: 0.5px solid black;
+                padding: 12px;
+                text-align: left;
+            }
+
+            #cameraCheckResults th {
+                background-color: lightblue;
+                font-weight: bold;
+            }
+
+        .status-blurry {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .status-not-working {
+            color: red;
+            font-weight: bold;
+        }
+
+        .status-working {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-dark {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .status-unknown {
+            color: orange;
+            font-weight: bold;
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid" style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;">
+        <div>
+            <p>Select</p>
+            <br/>
+            <button id="selectBtn">Select</button>
+        </div>
+    </div>
+
+    <br/>
+
+   @*  Append modol for user to select time to send telegram message *@
+    <!-- Set Scheduler Modal -->
+    <div class="modal fade" id="SetTimeModal" tabindex="-1" role="dialog" aria-labelledby="addCameraModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="addCameraModalLabel">Add Camera</h4>
+                    <h5 class="modal-title">
+                        Set Schedule for <span id="modalCameraName"></span>
+                    </h5>
+                </div>
+                <form id="addCameraForm" action="@Url.Action("SendTelegramMessage", "SendMessage")"
+                      method="post">
+                    <input type="hidden" id="cameraId" name="CameraId" value="" />
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="scheduleTime">Schedule Time</label>
+                            <input type="time" class="form-control" id="scheduleTime" name="Time" required />
+                        </div>
+                        <br />
+                        <label for="notificationMethod">Notification Method:</label>
+                        <select id="notificationMethod" name="notificationMethod" class="form-control">
+                            <option value="Telegram">Telegram</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="notifyBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script>
+
+        $(document).ready(function () {
+            $('#selectBtn').click(function() {
+                $('#SetTimeModal').modal('show');
+
+            })
+
+        })
+
+    </script>
+</body>
+</html>

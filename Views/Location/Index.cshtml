@@ -1,0 +1,484 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Models.Epatrol.Location
+@{
+    ViewBag.Title = "Location";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css"> *@
+}
+
+@{
+    var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+}
+
+@section scripts {
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+    <link href="~/lib/select2/css/select2.min.css" rel="stylesheet" />
+    <script src="~/lib/select2/js/select2.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#location-table').DataTable({
+                responsive: true
+            });
+
+            //Add New text field for level
+            $(document).on('click', '#add-level', function () {
+                var newGroup = $('<div>', { class: 'level-group' }).css({ 'margin-top': '5px' });
+
+                var newLevelDiv = $('<div>', { class: 'rows' }).css({ 'display': 'flex', 'align-items': 'center' });
+                var newLevel = $('<input>', {
+                    type: 'text',
+                    class: 'form-control',
+                    name: 'Levels[]',
+                    required: true,
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '82%'
+                    }
+                });
+
+                var addButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'add-level',
+                    css: {
+                        'margin-left': '10px',
+                        'cursor': 'pointer',
+                        'color': '#333'
+                    }
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-level',
+                    css: {
+                        'margin-left': '8px',
+                        'cursor': 'pointer',
+                        'color': 'red'
+                    }
+                });
+
+                newLevelDiv.append(newLevel, addButton, deleteButton);
+
+                var mapPreview = $('<img>', {
+                    id: 'map-preview',
+                    src: '',
+                    alt: 'Map Preview',
+                    css: {
+                        'display': 'none',
+                        'max-width': '100%',
+                        'height': 'auto',
+                        'margin-top': '5px',
+                        'margin-bottom': '5px'
+                    }
+                });
+
+                var patrolMapInput = $('<input>', {
+                    type: 'file',
+                    class: 'form-control',
+                    name: 'patrolMap',
+                    accept: '.jpg, .jpeg, .png',
+                    required: true,
+                    multiple: true,
+                    css: {
+                        'width': '82%',
+                        'margin-top': '5px'
+                    }
+                });
+
+                newGroup.append(newLevelDiv, mapPreview, patrolMapInput);
+
+                $('#level-container').append(newGroup);
+            });
+
+            $(document).on('click', '#edit-level', function () {
+                var newLevelGroup = $('<div>', { class: 'editLevel-group' }).css({ 'margin-top': '5px' });
+                var newDiv = $('<div>', {
+                    style: 'display: flex; margin-top: 10px; align-items: center'
+                });
+
+                var newEditLevel = $('<input>', {
+                    class: 'form-control',
+                    name: 'editLevels[]',
+                    required: true,
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '82%'
+                    }
+                });
+
+                var editButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'edit-level',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'editDelete-level',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newEditLevel, editButton, deleteButton);
+
+                var editMapPreview = $('<img>', {
+                    id: 'editMap-preview',
+                    src: '',
+                    alt: 'Map Preview',
+                    css: {
+                        'display': 'none',
+                        'max-width': '100%',
+                        'height': 'auto',
+                        'margin-top': '5px',
+                        'margin-bottom': '5px'
+                    }
+                });
+
+                var editPatrolMapInput = $('<input>', {
+                    type: 'file',
+                    class: 'form-control',
+                    name: 'editPatrolMap',
+                    accept: '.jpg, .jpeg, .png',
+                    required: false,
+                    multiple: true,
+                    css: {
+                        'width': '82%',
+                        'margin-top': '5px'
+                    }
+                });
+
+                newLevelGroup.append(newDiv, editMapPreview, editPatrolMapInput);
+                $('#edit-level-container').append(newLevelGroup);
+            });
+
+            $(document).on('click', '#delete-level', function () {
+                $(this).closest('.level-group').remove();
+            });
+
+            $(document).on('click', '#editDelete-level', function () {
+                $(this).closest('.editLevel-group').remove();
+            });
+
+            $(document).on('change', 'input[name="patrolMap"]', function () {
+                var file = this.files[0];
+                var reader = new FileReader();
+
+                var preview = $(this).closest('.level-group').find('#map-preview');
+
+                if (!preview.length) {
+                    console.error("Map preview element not found!");
+                    return;
+                }
+
+                reader.onload = function (e) {
+                    preview.attr('src', e.target.result).show();
+                    console.log("Preview updated successfully");
+                };
+
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.hide();
+                    alert('Please upload a valid image file (JPG, JPEG, or PNG).');
+                }
+            });
+
+            $(document).on('change', 'input[name="editPatrolMap"]', function () {
+                var file = this.files[0];
+                var reader = new FileReader();
+
+                var preview = $(this).closest('.editLevel-group').find('#editMap-preview');
+
+                if (!preview.length) {
+                    console.error("Map preview element not found!");
+                    return;
+                }
+
+                reader.onload = function (e) {
+                    preview.attr('src', e.target.result).show();
+                    console.log("Preview updated successfully");
+                };
+
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.hide();
+                    alert('Please upload a valid image file (JPG, JPEG, or PNG).');
+                }
+            });
+        });
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location Page</title>
+    <!--JQuery for Modal Population -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Locations</h3>
+            <div>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#add-location-module" id="btn-add-module">
+                    Add Location
+                </button>
+            </div>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="location-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Block Name</th>
+                        <th>Level</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (locations != null && locations.Any())
+                    {
+                        var groupedLocations = locations.GroupBy(loc => loc.Name).ToList();
+                        int index = 1;
+
+                        foreach (var group in groupedLocations)
+                        {
+                            <tr>
+                                <td style="padding: 10px;">@index</td>
+                                <td style="padding: 10px;">@group.Key</td>
+                                <td style="padding: 10px;">
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        @foreach (var location in group)
+                                        {
+                                            <li>
+                                                <em>@location.Level</em>
+                                                @if (location.Image == null)
+                                                {
+                                                    <span style="color: red;">(No Floor Map)</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td style="padding: 10px;">
+                                    <button type="button" class="btn btn-warning btn-sm" style="margin-bottom: 8px;" data-toggle="modal" data-target="#editLocationModal"
+                                            data-id="@string.Join(", ", group.Select(loc => loc.LocationId))"
+                                            data-name="@group.Key"
+                                            data-level="@string.Join(", ", group.Select(loc => loc.Level))"
+                                            data-map="@string.Join(", ", group.Select(loc => loc.Image != null ? Convert.ToBase64String(loc.Image) : "NoImage"))">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm" style="margin-bottom: 8px;" data-toggle="modal" data-target="#deleteLocationModal"
+                                            data-id="@string.Join(", ", group.Select(loc => loc.LocationId))">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 10px;">No locations available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Location Modal -->
+    <div class="modal fade" id="add-location-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addLocationForm" action="@Url.Action("CreateNewLocation", "Location")" method="post" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Location</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section" id="modules-add-location">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Block Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="BlockName" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required />
+                                    </div>
+                                    <div class="col-md-6" id="level-container">
+                                        <label>Level <span class="text-danger">*</span></label>
+                                        <div class="level-group">
+                                            <div class="rows" style="display: flex; align-items: center;">
+                                                <input type="text" class="form-control" name="Levels[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required />
+                                                <i class="fas fa-plus" id="add-level" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                                <i class="fas fa-trash" id="delete-level" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                                            </div>
+                                            <img id="map-preview" src="" alt="Map Preview" style="display:none; max-width: 100%; height: auto; margin-top: 5px; margin-bottom: 5px;" />
+                                            <input type="file" class="form-control" name="patrolMap" id="patrolMapInput" style="width: 82%; margin-top: 5px;" accept=".jpg, .jpeg, .png" multiple required />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="submit" class="btn btn-primary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Location Modal -->
+    <div class="modal fade" id="deleteLocationModal" tabindex="-1" role="dialog" aria-labelledby="deleteLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteLocationModalLabel">Delete Route</h5>
+                </div>
+                <form id="deleteLocationForm" action="@Url.Action("DeleteLocation", "Location")" method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="deleteLocationId" name="LocationIds" />
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this Location?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Location Modal -->
+    <div class="modal fade" id="editLocationModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editLocationForm" action="@Url.Action("EditLocation", "Location")" method="post" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Location</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="editBlockName">Block Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editBlockName" name="BlockName" style="border-radius: 5px; margin-top: 10px; width: 86%" required />
+                                </div>
+                                <div class="col-md-6" id="edit-level-container">
+                                    <label for="editLevel">Level <span class="text-danger">*</span></label>
+                                    <div id="level-inputs">
+                                        <!-- level rows will be dynamically inserted here via JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#deleteLocationModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var locationIds = button.data('id');
+            var modal = $(this);
+            modal.find('#deleteLocationId').val(locationIds);
+        });
+
+        $('#editLocationModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var locationIds = button.data('id');
+            if (typeof locationIds === 'string' && locationIds.includes(',')) {
+                locationIds = locationIds.split(',');
+            } else {
+                locationIds = [locationIds];
+            }
+
+            var blockName = button.data('name');
+            var levels = (button.data('level') || "").toString().split(',');
+            var patrolMaps = (button.data('map') || "").toString().split(',');
+
+            var modal = $(this);
+            modal.find('#editBlockName').val(blockName);
+
+            var levelContainer = modal.find('#level-inputs');
+            levelContainer.empty();
+
+            levels.forEach((level, index) => {
+                var locationId = locationIds[index];
+                var image = patrolMaps[index] ? patrolMaps[index].trim() : "";
+                var imagePreviewStyle = image ? "display: block;" : "display: none;";
+                var imagePreviewSrc = image ? `data:image/png;base64,${image}` : "";
+
+                levelContainer.append(`
+                    <div class="editLevel-group" style="margin-top: 10px;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="hidden" name="LocationIds[]" value="${locationId}" />
+                            <input type="text" class="form-control" name="editLevels[]" value="${level.trim()}" style="width: 82%; border-radius: 5px; margin-bottom: 5px;" required />
+                            <i class="fas fa-plus" id="edit-level" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                            <i class="fas fa-trash" id="editDelete-level" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                        </div>
+                        <img id="editMap-preview" src="${imagePreviewSrc}" alt="Map Preview" style="${imagePreviewStyle} max-width: 100%; height: auto; margin-top: 5px; margin-bottom: 5px;" />
+                        <input type="file" class="form-control editPatrolMapInput" name="editPatrolMap-${index}" id="editPatrolMapInput" style="width: 82%; margin-top: 5px;" accept=".jpg, .jpeg, .png" multiple/>
+                        <input type="hidden" name="existingImage-${index}" value="${image?.startsWith('data:image') ? image.replace(/^data:image\/(png|jpeg);base64,/, '') : ''}" />
+                    </div>
+                `);
+            });
+        });
+
+        $(document).on('change', '.editPatrolMapInput', function(event) {
+            var input = $(this);
+            var inputId = input.attr('id');
+            var index = inputId.split('-')[1];
+            var preview = $('#editMap-preview-' + index);
+            var file = event.target.files[0];
+
+            if (file) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                    preview.attr('src', e.target.result);
+                    preview.show();
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                preview.hide();
+            }
+        });
+    </script>
+</body>
+</html>

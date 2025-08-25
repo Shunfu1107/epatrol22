@@ -1,0 +1,57 @@
+﻿.pagination {
+    margin: 0;
+}
+
+.pagination li:hover {
+    cursor: pointer;
+}
+
+.header_wrap {
+    padding: 3px 0;
+}
+.num_rows {
+    width: 8%;
+    float: left;
+}
+
+.tb_search {
+    width: 15%;
+    float: right;
+    font-size: 14px;
+}
+
+.pagination-container {
+    width: 20%;
+    float: left;
+}
+
+.rows_count {
+    position: fixed;
+    width: 8%;
+    float: right;
+    text-align: right;
+    color: #999;
+}
+
+.icon-container {
+    display: flex;
+    justify-content: space-between; /* Adjust other styles as needed */
+    align-items: flex-start;
+}
+
+.icon-cell {
+    vertical-align: top; /* Align content to the top of the cell */
+}
+
+/* Adjust the size of the icons if necessary */
+.icon-container .fas {
+    font-size: 14px; /* Adjust the size as needed */
+    margin: 0 1px;
+}
+
+/* Style for container */
+.table-container {
+    position: relative;
+    margin-bottom: 20px; /* Adjust as needed */
+}
+

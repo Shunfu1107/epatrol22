@@ -1,0 +1,73 @@
+﻿
+.col-mob-view {
+    padding-top: 10px;
+}
+
+.data-row {
+    margin-left: 137px;
+}
+
+
+.col-data-new {
+    position: relative;
+    min-height: 1px;
+    /*padding-right:5px;*/
+    padding-left: 15px;
+    width: 20%;
+    float: left;
+}
+.form-horizontal .form-group {
+    margin-right: -15px;
+    margin-left: -10px;
+}
+.group-control {
+    margin-right: -15px;
+    margin-left: -15px;
+    margin-bottom: 10px;
+}
+
+    .group-control:before {
+        display: table;
+        content: " ";
+    }
+
+    .group-control:after {
+        clear: both;
+        display: table;
+        content: " ";
+    }
+
+.data-row-button {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/*.Fieldlist {
+    padding: 10px;
+}*/
+
+.form-group {
+padding: 0px 10px;
+margin-bottom:10px;
+}
+.data-row-select {
+    margin-right: -15px;
+    margin-left: -15px;
+    margin-bottom: 15px;
+}
+
+.col-data {
+    position: relative;
+    min-height: 1px;
+    /*padding-right:5px;*/
+    padding-left: 15px;
+    width: 50%;
+    float: left;
+}
+
+.btn {
+    margin-top: -10px;
+    margin-right:10px;
+}
+
+

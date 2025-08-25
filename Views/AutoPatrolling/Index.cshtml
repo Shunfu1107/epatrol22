@@ -1,0 +1,607 @@
+﻿@{
+    ViewBag.Title = "Patrolling";
+}
+
+@{
+    var route = Model;
+}
+
+@model dynamic
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patrolling</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+            .video-container .video-js {
+                width: 100%;
+                max-width: 720px;
+        using AdminPortalV8.Models.Epatrol;
+                height: auto;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+            .shared-table{
+                border: none;
+                font-size: 16px;
+                width: 360px;
+                margin: 30px 0px;
+            }
+            #finishPatrolButton{
+                margin-left: auto;
+                margin-right: auto;
+            }
+    </style>
+</head>
+<body style="top:0;">
+    <div class="container-fluid" style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;">
+        <h2>@Model.routeName</h2>
+        <!-- Hidden field to store RouteId -->
+        <input type="hidden" id="routeId" value="@Model.routeId" />
+
+        <!-- Shared Duration and Dropbox Token Inputs -->
+        <table class="shared-table">
+            <tr>
+                <td>
+                    <label for="duration">Choose a Duration:</label>
+                </td>
+                <td>
+                    <select name="duration" id="shared_duration" required>
+                        <option value="5">5 Seconds</option>
+                        <option value="15">15 Seconds</option>
+                        <option value="3600">1 Hour</option>
+                        <option value="14400">4 Hours</option>
+                        <option value="43200">12 Hours</option>
+                        <option value="86400">24 Hours</option>
+                    </select>
+                </td>
+            </tr>
+             <tr> 
+                 <td> 
+                     <label for="dropbox_token"></label> 
+                 </td> 
+                 <td> 
+                     <input type="hidden" id="shared_dropbox_token" name="dropbox_token" required onchange="updateToken()"> 
+                 </td> 
+             </tr> 
+            <br/>
+            <tr>
+                <td>
+                    <!-- Single submit button -->
+                    <button id="submitAllForms" class="btn btn-primary">Start Auto Patrol</button>
+                </td>
+
+            </tr>
+            <br/>
+            <tr>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="submitAllForms_Schedule">
+                        <label class="form-check-label" for="flexSwitchCheckDefault">Schedule On</label>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Checkpoint Content -->
+        <div id="checkpointTabContent">
+            @for (int i = 0; i < Model.Checkpoints.Count; i++)
+            {
+                var checkpoint = Model.Checkpoints[i];
+                var isActive = i == 0 ? "block" : "none"; // Initially show only the first tab
+
+                <div class="checkpoint-pane" id="checkpointTab_@i" style="display:@isActive;">
+                    <h4>Check Point: @checkpoint.CheckpointName</h4>
+
+                    <!-- Camera Display for Each Checkpoint -->
+                    <div class="video-container">
+                        <video id="live-stream-@i" class="video-js vjs-default-skin" autoplay muted width="1280" height="720">
+                            Your browser does not support HTML5 video.
+                        </video>
+                    </div>
+
+                    <!-- Results -->
+                    <table class="table table-bordered" id="model-data">
+                        <thead>
+                            <tr>
+                                <th>Detection</th>
+                                <th>Checklist</th>
+                                <th>AI Name</th>
+                                <th>AI URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var checklist in checkpoint.Checklists)
+                            {
+                                <tr data-checklist-id="@checklist.ChecklistId" data-checkpoint-id="@checkpoint.CheckpointId">
+                                    <td>@checklist.ChecklistName</td>
+                                    <td display="none" class="checkpointName">@checkpoint.CheckpointName</td>
+                                    <td>@checklist.ModelName</td>
+                                    <td>@checklist.ModelUrl</td>
+                                    <td style="display:none"><input type="text" class="statusField"></td>
+                                    <td style="display:none"><input type="text" class="noteField"></td>
+                                    <td style="display:none"><input type="text" class="folderLinkField"></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <!-- AI Model Form -->
+                    <div id="formsWrapper_@i" data-checkpoint-name="@checkpoint.CheckpointName">
+                        @foreach (var camera in checkpoint.Cameras)
+                        {
+                            <input type="hidden" id="camera_@i" name="camera" value="@camera.CameraIp" />
+                        }
+                        @foreach (var checklist in checkpoint.Checklists)
+                        {
+                            <input type="hidden" id="name_@i" name="name" value="@checklist.ModelName" />
+                            <input type="hidden" id="url_@i" name="url" value="@checklist.ModelUrl" />
+                        }
+                        <input type="hidden" id="checkPointName_@i" name="checkPointName" value="@checkpoint.CheckpointName" />
+                    </div>
+
+                    <!-- API Response -->
+                    <h2>Response</h2>
+                    <pre id="postResponse_@i"></pre>
+                </div>
+            }
+        </div>
+
+        <!-- Previous and Next buttons -->
+        <div class="text-center mt-3">
+            <button id="prevBtn" class="btn btn-secondary" style="display:none;">Previous</button>
+            <button id="nextBtn" class="btn btn-secondary" style="display:none;">Next</button>
+        </div>
+    </div>
+
+    <!-- Finish Patrol Button -->
+    <div>
+        <div class="text-center mt-3" style="margin:10px">
+            <button id="finishPatrolButton" class="btn btn-primary" style="display:none;">Finish Patrol</button>
+        </div>
+    </div>
+
+    <!-- Confirmation Quit Modal -->
+    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exitModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exitModalLabel">Confirm Exit</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to quit? Progress may be lost.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="stayButton" data-dismiss="modal">Stay on Page</button>
+                    <button type="button" class="btn btn-primary" id="leaveButton">Leave Page</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    @section Scripts {
+        <script>
+            let finishedPatrol = false;
+
+            $(document).ready(function () {
+                let currentTab = 0;
+                let totalTabs = $('.checkpoint-pane').length;
+
+                function showTab(index) {
+                    // Hide all checkpoint panes
+                    $('.checkpoint-pane').css('display', 'none');
+
+                    // Show the current one
+                    $('#checkpointTab_' + index).css('display', 'block');
+
+                    // Update active form
+                    const postForm = document.getElementById('postForm_' + index);
+                    if (postForm) {
+                        postForm.style.display = "block";  // Ensure form is displayed correctly for the active tab
+                    }
+
+                    if (totalTabs === 1) {
+                        $("#prevBtn").hide();
+                        $("#nextBtn").hide();
+                    } else {
+                        $("#prevBtn").show();
+                        $("#nextBtn").show();
+                    }
+                }
+
+                // Show the first tab by default
+                showTab(currentTab);
+
+                // Handle Next button click
+                $('#nextBtn').click(function () {
+                    if (currentTab < totalTabs - 1) {
+                        currentTab++;
+                        showTab(currentTab);
+                    }
+                });
+
+                // Handle Previous button click
+                $('#prevBtn').click(function () {
+                    if (currentTab > 0) {
+                        currentTab--;
+                        showTab(currentTab);
+                    }
+                });
+
+                // Save the Patrol Data When The Finish Button Is Clicked
+                $("#finishPatrolButton").click(function () {
+                    finishedPatrol = true;
+                    let checklistData = [];
+
+                    // Loop through each checklist row and collect data
+                    $(`#model-data tbody tr`).each(function () {
+                        let checkpointId = $(this).data("checkpoint-id");
+                        let checklistId = $(this).data("checklist-id");
+                        let status = $(this).find(".statusField").val();
+                        let note = $(this).find(".noteField").val();
+                        let checkpointName = $(this).find(".checkpointName").text().trim();
+                        let checklistName = $(this).find("td").first().text().trim();
+                        //let folderLink = $(this).find(".folderLinkField").val();
+                        let video_url = $(this).find(".folderLinkField").val();
+
+                        checklistData.push({
+                            ChecklistId: checklistId,
+                            Status: status,
+                            Note: note,
+                            CheckPointName: checkpointName,
+                            CheckListName: checklistName,
+                            Link: video_url
+                        });
+                    });
+
+                    let routeId = $('#routeId').val();
+
+                    // Send data to the server to save the patrol data
+                    $.ajax({
+                        type: "POST",
+                        url: '@Url.Action("SavePatrol", "AutoPatrolling")',
+                        data: JSON.stringify({
+                            RouteId: routeId,
+                            Checklists: checklistData
+                        }),
+                        contentType: "application/json",
+                        success: function (response) {
+                            alert('Patrol data saved successfully!');
+                            window.location.href = '@Url.Action("PatrolDone", "AutoPatrolling")';
+                        },
+                        error: function (xhr, status, error) {
+                            alert('Error saving patrol data: ' + error);
+                        }
+                    });
+                });
+
+                //Load Video
+                let checkpoints = @Html.Raw(Json.Serialize(Model.Checkpoints));
+                checkpoints.forEach((checkpoint, index) => {
+                    let videoElement = document.getElementById(`live-stream-${index}`);
+                    let videoSrc = `/stream/output_camera${checkpoint.checkpointId}.m3u8`;
+
+                    if (Hls.isSupported()) {
+                        let hls = new Hls();
+                        hls.loadSource(videoSrc);
+                        hls.attachMedia(videoElement);
+                        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                            videoElement.play();
+                        });
+                    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoElement.src = videoSrc;
+                        videoElement.addEventListener('loadedmetadata', function () {
+                            videoElement.play();
+                        });
+                    }
+                });
+            });
+        </script>
+
+        <script>
+            // Call Telegram Message Service
+            function sendTelegramNotification(message) {
+                $.ajax({
+                    url: '/AutoPatrolling/TelegramNotifyAnomaly',
+                    type: 'POST',
+                    data: { message: message },
+                    success: function (response) {
+                        console.log(response);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error: " + error);
+                    }
+                });
+            }
+
+            // Call Email Sending Service
+            function sendEmailNotification(message) {
+                $.ajax({
+                    url: '/AutoPatrolling/EmailNotifyAnomaly',
+                    type: 'POST',
+                    data: { message: message },
+                    success: function (response) {
+                        console.log(response);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error: " + error);
+                    }
+                });
+            }
+
+            // Call SMS Message Service
+            function sendSMSNotification(message) {
+                console.log("Sending SMS with message: ", message);
+                $.ajax({
+                    url: '/AutoPatrolling/SMSNotifyAnomaly',
+                    type: 'POST',
+                    data: { message: message },
+                    success: function (response) {
+                        console.log("SMS sent successfully:", response);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error sending SMS:", error, xhr.responseText);
+                    }
+                });
+            }
+
+            // Pass Data to API Call
+            document.addEventListener('DOMContentLoaded', function () {
+                const submitButton = document.getElementById('submitAllForms');
+                const finishPatrolButton = document.getElementById('finishPatrolButton');
+                const scheduleAutoPatrolButton = document.getElementById('submitAllForms_Schedule')
+
+                const token = document.getElementById('shared_dropbox_token').value;
+
+                scheduleAutoPatrolButton.addEventListener('change', async function(event){
+                    if(event.target.checked){
+                        @* send required data to run Auto Patroling in the C# backend side *@
+                        if (!token.trim()) {
+                            // If empty, show an error message
+                            alert("Fill in the Drop Box Token field");
+                            // Uncheck the checkbox
+                            event.target.checked = false;
+                            // Stop execution here to avoid calling SendAutoPatrolData
+                            return;
+                        }
+                        await SendAutoPatrolData("ScheduleAutoPatrol");
+                    } else {
+                        console.log("stop the schedule ")
+                        await SendAutoPatrolData("StopScheduleAutoPatrol");
+                    }
+                });
+
+                submitButton.addEventListener('click', async function(){
+                    await AutoDetection();
+                });
+
+                async function AutoDetection(){
+                    const duration = document.getElementById('shared_duration').value;
+                    const dropbox_token = document.getElementById('shared_dropbox_token').value;
+                    
+                    const routeId = document.getElementById('routeId').value;
+                    let checklistData = [];
+
+                    // Loop through each formsWrapper element by finding elements with ID pattern `formsWrapper_i`
+                    const formsWrappers = document.querySelectorAll('[id^="formsWrapper_"]');
+                    let totalRequests = 0;
+                    let completedRequests = 0;
+
+                    formsWrappers.forEach((formWrapper) => {
+                        const cameras = formWrapper.querySelectorAll('input[name="camera"]');
+                        totalRequests += cameras.length; // Increment total requests by the number of cameras per checkpoint
+                    });
+
+                    // Process each form within formsWrappers
+                    formsWrappers.forEach(async (formWrapper, index) => {
+                        const formId = formWrapper.id.split('_')[1];
+                        const postResponse = document.getElementById(`postResponse_${formId}`);
+                        postResponse.innerText = 'Loading...';
+
+                        // Retrieve CheckPointName from data attribute or default to 'Checkpoint X'
+                        const checkPointName = formWrapper.getAttribute('data-checkpoint-name');
+                        
+                        // Collect data from each form for the current checkpoint
+                        const cameras = Array.from(formWrapper.querySelectorAll('input[name="camera"]')).map(input => input.value);
+                        const names = Array.from(formWrapper.querySelectorAll('input[name="name"]')).map(input => input.value);
+                        const urls = Array.from(formWrapper.querySelectorAll('input[name="url"]')).map(input => input.value);
+
+                        const models = names.map((name, index) => ({
+                            name: name,
+                            url: urls[index]
+                        }));
+
+                        // Sending each form's data one by one
+                        try {
+                            let responseText = '';
+                            for (let i = 0; i < cameras.length; i++) {
+                                //const response = await fetch('http://192.168.0.2:9999/press_button/images', {
+                                const response = await fetch('http://127.0.0.1:8001/press_button/images', {
+                                //const response = await fetch('http://192.168.1.19:8001/press_button/images', {
+                                //const response = await fetch('http://192.168.0.2:8001/press_button/images', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        camera: cameras[i],
+                                        duration,
+                                        dropbox_token,
+                                        models: models // Array of { name, url }
+                                    })
+                                });
+
+                                if (response.ok) {
+                                    const result = await response.json();
+                                    responseText += `\nSuccess: ${result.message}\n`;
+
+                                    const statusField = document.querySelector(`#checkpointTab_${formId} .statusField`);
+                                    const noteField = document.querySelector(`#checkpointTab_${formId} .noteField`);
+                                    const folderLinkField = document.querySelector(`#checkpointTab_${formId} .folderLinkField`);
+
+                                    if (statusField) statusField.value = result.status || 'Status not provided';
+                                    if (noteField) noteField.value = result.note || 'Note not provided';
+
+                                    // Append folder link to the message if provided
+                                    if (result) {
+                                        //folderLinkField.value = `http://127.0.0.1:8001${result.video_url}`;
+                                        folderLinkField.value = `${result.video_url}`;
+                                        // Send Telegram Message and SMS Message
+                                        //sendTelegramNotification(`Anomaly detected at: ${checkPointName}.`);
+                                        sendEmailNotification(`Anomaly detected at: ${checkPointName}.`);
+                                        //sendSMSNotification("Anomaly detected at: " + checkPointName);
+                                    }
+
+                                    checklistData.push({
+                                        CheckPointName: checkPointName,
+                                        CheckListName: names[i],
+                                        Status: result.status || 'No status',
+                                        Note: result.note || 'No note',
+                                        Link: result.video_url || ''
+                                    });
+
+                                    completedRequests++;
+                                } else {
+                                    responseText += `\nError: ${response.statusText}`;
+                                }
+                                if (completedRequests === totalRequests) {
+                                    autoSavePatrolData(routeId, checklistData);
+                                    //finishPatrolButton.style.display = 'block'; // Show the "Finish Patrol" button
+                                }
+                            }
+                            postResponse.innerText = responseText.trim(); // Set all accumulated response messages at once
+                        } catch (error) {
+                            postResponse.innerText = `Error Test: ${error.message}`;
+                        }
+                    });
+                };
+
+                async function autoSavePatrolData(routeId, checklistData) {
+                    if (!routeId || checklistData.length === 0) return;
+
+                    try {
+                        const response = await fetch('/AutoPatrolling/SavePatrol', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                RouteId: routeId,
+                                Checklists: checklistData
+                            })
+                        });
+
+                        if (response.ok) {
+                            alert('Patrol data saved successfully!');
+                            window.location.href = '/AutoPatrolling/PatrolDone';
+                        } else {
+                            alert('Error saving patrol data.');
+                        }
+                    } catch (error) {
+                        alert('Error: ' + error.message);
+                    }
+                }
+
+                // This function sends the data for AutoDetection(AutoPatrol) to the serverside.
+                // This data is going to be used to run AutoDetection(AutoPatrol) system
+                async function SendAutoPatrolData(controller){
+                    console.log("Sending Data Token server function Is CALLED");
+                    const duration = document.getElementById('shared_duration').value;
+                    const dropbox_token = document.getElementById('shared_dropbox_token').value;
+                    const formsWrappers = document.querySelectorAll('[id^="formsWrapper_"]');
+                    formsWrappers.forEach(async (formWrapper, index) => {
+
+                        // Retrieve CheckPointName from data attribute or default to 'Checkpoint X'
+                        const checkPointName = formWrapper.getAttribute('data-checkpoint-name');
+
+                        // Collect data from each form for the current checkpoint
+                        const cameras = Array.from(formWrapper.querySelectorAll('input[name="camera"]')).map(input => input.value);
+                        const names = Array.from(formWrapper.querySelectorAll('input[name="name"]')).map(input => input.value);
+                        const urls = Array.from(formWrapper.querySelectorAll('input[name="url"]')).map(input => input.value);
+
+                        const models = names.map((name, index) => ({
+                            name: name,
+                            url: urls[index]
+                        }));
+
+                        for (let i = 0; i < cameras.length; i++) {
+                            // Send a simple string "HELLO" to the server
+                            const url = `AutoPatrolling/${controller}`;
+                            $.ajax({
+                                type: "POST",
+                                url:url,
+                                data: JSON.stringify({
+                                    Message: "HELLO",
+                                    RouteId: "@Model.routeId",
+                                    DropBox_Token: dropbox_token,
+                                    Duration: duration,
+                                    RouteName: "@Model.routeName",
+                                    CameraIp: cameras[i],
+                                    Models: models
+                                }),
+                                contentType: "application/json",
+                                success: function (response) {
+                                    console.log('Response from server:', response);
+                                },
+                                error: function (xhr, status, error) {
+                                    console.error('Error sending data:', error);
+                                }
+                            });
+                        }
+
+                    });
+                }; // SendAutoPatrolData function ends
+
+                async function SendAutoPatrolDatatoStop(){
+
+                }
+
+            });
+        </script>
+    }
+
+    <!-- Show Camera -->
+    <script>
+        document.querySelectorAll('.checkpoint-tab').forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                // Hide all checkpoint panes
+                document.querySelectorAll('.checkpoint-pane').forEach(pane => {
+                    pane.style.display = 'none';
+                });
+                // Show the selected checkpoint pane
+                document.getElementById(`checkpointTab_${index}`).style.display = 'block';
+            });
+        });
+    </script>
+
+    <!-- Prompt Message Asking Users Before Leaving the Page & Stoping FFMpeg Processes -->
+    <script>
+        let token = "";
+
+        updateToken = () => {
+            token = document.getElementById('shared_dropbox_token').value;
+        }
+
+        window.addEventListener('beforeunload',
+            function (e) {
+
+                if (token !== '' && !finishedPatrol) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+                navigator.sendBeacon("/AutoPatrolling/StopStreaming");
+            });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+</html>

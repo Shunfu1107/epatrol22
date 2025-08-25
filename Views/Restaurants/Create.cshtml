@@ -1,0 +1,669 @@
+﻿
+@model AdminPortalV8.Models.Restaurant.RestaurantDetailModel
+
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Add new Restaurant";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+@using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-restaurant", action = "#" }))
+            {
+    <div class="box box-info">
+        <div class="box-body">
+        
+                @Html.AntiForgeryToken()
+                <h4>Restaurant Detail </h4>
+
+                <br>
+                <div class="form-horizontal">
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label col-md-2 required-field" })
+                        <div class="col-md-10">
+                            @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                            @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Address, htmlAttributes: new { @class = "control-label col-md-2 required-field" })
+                        <div class="col-md-10">
+                            @Html.EditorFor(model => model.Address, new { htmlAttributes = new { @class = "form-control" } })
+                            @Html.ValidationMessageFor(model => model.Address, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.StartDate, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                            <div class='input-group datepicker'>
+                                @Html.TextBoxFor(model => model.StartDate, htmlAttributes: new { @class = "form-control", autocomplete = "off" })
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                            @Html.ValidationMessageFor(model => model.StartDate, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    @* <div class="form-group">
+                        @Html.LabelFor(model => model.Manager, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                            @Html.CheckBoxFor(model => model.Manager, new {@id="chk-manager"})
+                        </div>
+                    </div> *@
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Active, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                        @Html.CheckBoxFor(model => model.Active, new{@id="chk-active"})
+                        </div>
+                    </div>
+
+                   @Html.HiddenFor(m=>m.Robots)
+                   @Html.HiddenFor(m=>m.Anchors)
+
+                    
+                </div>
+            
+        </div>
+    </div>
+<div class="box box-solid">
+    <div class="box-header with-border">
+        <h3 class="box-title">Robots Information</h3>
+    </div>
+    <!-- /.box-header -->
+    <div class="box-body">
+        <table id="robots-table" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Name</th>
+                    <th>Serial Number</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+
+    <div class="box-footer text-right">
+        <button type="button" class="btn btn-primary" id="btn-add-robot">Add Robot</button>
+    </div>
+</div>
+
+<div class="box box-solid">
+    <div class="box-header with-border">
+        <h3 class="box-title">Anchors Information</h3>
+    </div>
+    <!-- /.box-header -->
+    <div class="box-body">
+        <table id="anchors-table" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Anchor Address</th>
+                    <th>X-Axis</th>
+                    <th>Y-Axis</th>
+                    <th>Main Anchor</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+
+    <div class="box-footer text-right">
+        <button type="button" class="btn btn-primary" id="btn-add-anchor">Add Anchor</button>
+    </div>
+</div>
+
+    <div class="box box-solid">
+        <div class="box-footer text-right">
+            <input type="submit" value="Create" class="btn btn-primary" />
+            @Html.ActionLink("Back to list", "Index", "Restaurants", null, new { @class = "btn btn-warning" })
+        </div>
+    </div>
+    }
+
+
+    <!--Add Robot Modal-->
+<div class="modal fade" id="modal-add-robot">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-robot", action = "#" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Add Robot</h4>
+                </div>
+                <div class="modal-body">
+                    <!--ADD ROBOT FORM MODAL-->
+                    <div id="add-robot" class="mel-section no-close">
+
+                        @Html.HiddenFor(m => m.RobotDetail.restaurant_id)
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.RobotDetail.Name, new { @class = "col-md-4 control-label required-field" })
+                            <div class="col-md-8">
+                                @Html.TextBoxFor(m=>m.RobotDetail.Name,"",new{@class="form-control"})
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.RobotDetail.Name)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.RobotDetail.SerialNum, new { @class = "col-md-4 control-label required-field" })
+                            <div class="col-md-8">
+                                @Html.TextBoxFor(m => m.RobotDetail.SerialNum, "", new { @class = "form-control" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.RobotDetail.SerialNum)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.RobotDetail.Active, new { @class = "col-md-4 control-label" })
+                            <div class="col-md-8">
+                                @Html.CheckBoxFor(m=>m.RobotDetail.Active,new{@id = "chk-robot-active"})
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+<!--Add Anchor Modal-->
+<div class="modal fade" id="modal-add-anchor">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-anchor", action = "#" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Add Anchor</h4>
+                </div>
+                <div class="modal-body">
+                    <!--ADD ANCHOR FORM MODAL-->
+                    <div id="add-anchor" class="mel-section no-close">
+
+                        @Html.HiddenFor(m => m.AnchorDetail.restaurant_id)
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.AnchorDetail.Anchor_Address, new { @class = "col-md-4 control-label required-field" })
+                            <div class="col-md-8">
+                                @Html.TextBoxFor(m => m.AnchorDetail.Anchor_Address, "", new { @class = "form-control" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.AnchorDetail.Anchor_Address)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.AnchorDetail.X_Axis, new { @class = "col-md-4 control-label required-field" })
+                            <div class="col-md-8">
+                                @Html.TextBoxFor(m => m.AnchorDetail.X_Axis, "", new { @class = "form-control", @type = "number" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.AnchorDetail.X_Axis)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.AnchorDetail.Y_Axis, new { @class = "col-md-4 control-label required-field" })
+                            <div class="col-md-8">
+                                @Html.TextBoxFor(m => m.AnchorDetail.Y_Axis, "", new { @class = "form-control", @type="number" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.AnchorDetail.Y_Axis)</span>
+                            </div>
+                        </div>
+                       
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.AnchorDetail.isMainAnchor, new { @class = "col-md-4 control-label" })
+                            <div class="col-md-8">
+                                @Html.CheckBoxFor(m => m.AnchorDetail.isMainAnchor, new { @id = "chk-anchor-main" })
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+@section Scripts {
+    <script src="/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script type="text/javascript">
+
+        var robottable = null;
+        var anchortable = null;
+
+        $('.datepicker').datetimepicker({
+            useCurrent: false,
+            format: 'DD/MM/YYYY'
+        });
+
+        $(document).ready(function () {
+            initRobotGrid();
+            initAnchorGrid();
+        });
+
+        function initRobotGrid() {
+
+
+            robottable = $(MEL.toSelector("robots-table")).dataTable({
+                'bServerSide': true
+                , 'sAjaxSource': '/Restaurants/GetRobots'
+                , 'iDisplayLength': 25
+                , 'sAjaxDataProp': 'data'
+                , 'sPaginationType': 'full_numbers'
+                , 'deferLoading': 0
+                , 'bPaginate': true
+                , 'bSort': false
+                , 'bJQueryUI': false
+                , 'autoWidth': false
+                , "bProcessing": true
+                , 'oLanguage': {
+                    sSearch: 'Search'
+                    , sInfo: '_START_ to _END_'
+                    , sEmptyTable: 'No records found.'
+                    , "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw" style="color:#2a2b2b;"></i><span class="sr-only">Loading...</span> '
+                }
+                , 'fnServerData': function (sSource, aoData, fnCallback, oSettings) {
+
+                    aoData.push({
+                        name: 'restId',
+                        value: 0
+                    })
+
+                    oSettings.jqXHR = $.ajax({
+                        type: 'get',
+                        datatype: 'json',
+                        url: sSource,
+                        data: aoData,
+                        success: function (result) {
+                            if (result && typeof result.success != 'undefined' && !result.success) {
+                                var msg = String.format('{0}.General error', URL_ROLEACCESS_VIEW);
+                                if (result.exception) msg = String.format('{0} - {1}', URL_ROLEACCESS_VIEW, result.exception.message);
+                                MEL.log(msg);
+                                return;
+                            }
+
+                            fnCallback.call(this, result);
+                        }
+                    });
+                }
+                , "aoColumnDefs": [
+                    { "bSortable": false, "aTargets": [0], 'sWidth': '25px', 'mData': null }
+                    ,
+                    {
+                        'aTargets': [4],
+                        'mRender': function (data, type, full) {
+                            return String.format('<a class="{1}" data-rolpro="{0}" title="Remove Robot"><i class="fa fa-ban"></i></a>',
+                                data.id,
+                                'grid-btn-robot-remove');
+                        }
+                    },
+                    {
+                        'aTargets': [3],
+                        'mRender': function (data, type, full) {
+                            if (data == true)
+                                return "Active";
+                            else
+                                return "Inactive";
+                        }
+                    }
+
+
+                ]
+                , 'fnDrawCallback': function (oSettings) {
+
+                    for (var i = 0, iLen = oSettings.aiDisplay.length; i < iLen; i++) {
+                        $(String.format("td:eq({0})", 0), oSettings.aoData[oSettings.aiDisplay[i]].nTr).html(i + oSettings._iDisplayStart + 1);
+                    }
+
+                    wireupEventRobotGrid();
+                }
+
+                , 'aoColumns': [
+                    { 'sWidth': '25px', 'mData': null }
+                    , { 'mData': "name" } // Title
+                    , { 'mData': "serialNum" }
+                    , { 'sWidth': '100px', 'mData': "active" }
+                    , { 'sWidth': '50px', 'mData': null }
+                ]
+            });
+        }
+
+        function initAnchorGrid() {
+
+
+            anchortable = $(MEL.toSelector("anchors-table")).dataTable({
+                'bServerSide': true
+                , 'sAjaxSource': '/Restaurants/GetAnchors'
+                , 'iDisplayLength': 25
+                , 'sAjaxDataProp': 'data'
+                , 'sPaginationType': 'full_numbers'
+                , 'deferLoading': 0
+                , 'bPaginate': true
+                , 'bSort': false
+                , 'bJQueryUI': false
+                , 'autoWidth': false
+                , "bProcessing": true
+                , 'oLanguage': {
+                    sSearch: 'Search'
+                    , sInfo: '_START_ to _END_'
+                    , sEmptyTable: 'No records found.'
+                    , "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw" style="color:#2a2b2b;"></i><span class="sr-only">Loading...</span> '
+                }
+                , 'fnServerData': function (sSource, aoData, fnCallback, oSettings) {
+
+                    aoData.push({
+                        name: 'restId',
+                        value: 0
+                    })
+
+                    oSettings.jqXHR = $.ajax({
+                        type: 'get',
+                        datatype: 'json',
+                        url: sSource,
+                        data: aoData,
+                        success: function (result) {
+                            if (result && typeof result.success != 'undefined' && !result.success) {
+                                var msg = String.format('{0}.General error', URL_ROLEACCESS_VIEW);
+                                if (result.exception) msg = String.format('{0} - {1}', URL_ROLEACCESS_VIEW, result.exception.message);
+                                MEL.log(msg);
+                                return;
+                            }
+
+                            fnCallback.call(this, result);
+                        }
+                    });
+                }
+                , "aoColumnDefs": [
+                    { "bSortable": false, "aTargets": [0], 'sWidth': '25px', 'mData': null }
+                    ,
+                    {
+                        'aTargets': [5],
+                        'mRender': function (data, type, full) {
+                            return String.format('<a class="{1}" data-rolpro="{0}" title="Remove Anchor"><i class="fa fa-ban"></i></a>',
+                                data.id,
+                                'grid-btn-anchor-remove');
+                        }
+                    },
+                    {
+                        'aTargets': [4],
+                        'mRender': function (data, type, full) {
+                            if (data == true)
+                                return "Yes";
+                            else
+                                return "No";
+                        }
+                    }
+
+
+                ]
+                , 'fnDrawCallback': function (oSettings) {
+
+                    for (var i = 0, iLen = oSettings.aiDisplay.length; i < iLen; i++) {
+                        $(String.format("td:eq({0})", 0), oSettings.aoData[oSettings.aiDisplay[i]].nTr).html(i + oSettings._iDisplayStart + 1);
+                    }
+
+                    wireupEventAnchorGrid();
+                }
+
+                , 'aoColumns': [
+                    { 'sWidth': '25px', 'mData': null }
+                    , { 'mData': "anchor_Address" } // Title
+                    , { 'mData': "x_Axis" }
+                    , { 'mData': "y_Axis" }
+                    , { 'sWidth': '100px', 'mData': "isMainAnchor" }
+                    , { 'sWidth': '50px', 'mData': null }
+                ]
+            });
+        }
+
+        function wireupEventRobotGrid() {
+            btnremoveRole = $(MEL.toClass('grid-btn-robot-remove'));
+
+            btnremoveRole.off();
+
+            btnremoveRole.click(function () {
+
+                var id = $(this).data('rolpro');
+                var list = robottable.fnGetData();
+                var exist = MEL.getByValue(list, 'id', id);
+                var restName = $("#Name").val();
+
+                bootbox.confirm({
+                    centerVertical: true,
+                    size: "small",
+                    message: "Do you wish to remove robot (" + exist.name + ") from the restaurant (" + restName + ") ?",
+                    buttons: {
+                        cancel: {
+                            label: 'Cancel'
+                        },
+                        confirm: {
+                            label: 'Remove'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            MEL.load({
+                                url: '/Restaurants/RemoveRobot',
+                                dto: {
+                                    Id: exist.id,
+                                    restId: 0
+                                }
+                                ,
+                                callback: function () {
+
+                                    bootbox.alert({
+                                        centerVertical: true,
+                                        size: "small",
+                                        message: "Robot has been removed successfully.",
+                                        callback: function () {
+                                            refreshGrid();
+                                        }
+                                    });
+                                }
+                            });
+
+                            return true;
+                        }
+                        else {
+                            return true;
+                        }
+                    }
+                });
+
+
+            });
+
+            MEL.validate();
+        }
+
+        function wireupEventAnchorGrid() {
+            btnremoveRole = $(MEL.toClass('grid-btn-anchor-remove'));
+
+            btnremoveRole.off();
+
+            btnremoveRole.click(function () {
+
+                var id = $(this).data('rolpro');
+                var list = anchortable.fnGetData();
+                var exist = MEL.getByValue(list, 'id', id);
+                var restName = $("#Name").val();
+                //console.log(exist);
+                bootbox.confirm({
+                    centerVertical: true,
+                    size: "small",
+                    message: "Do you wish to remove anchor (" + exist.anchor_Address + ") from the restaurant (" + restName + ") ?",
+                    buttons: {
+                        cancel: {
+                            label: 'Cancel'
+                        },
+                        confirm: {
+                            label: 'Remove'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            MEL.load({
+                                url: '/Restaurants/RemoveAnchor',
+                                dto: {
+                                    Id: exist.id,
+                                    restId: 0
+                                }
+                                ,
+                                callback: function () {
+
+                                    bootbox.alert({
+                                        centerVertical: true,
+                                        size: "small",
+                                        message: "Anchor has been removed successfully.",
+                                        callback: function () {
+                                            refreshGrid();
+                                        }
+                                    });
+                                }
+                            });
+
+                            return true;
+                        }
+                        else {
+                            return true;
+                        }
+                    }
+                });
+
+
+            });
+
+            MEL.validate();
+        }
+
+
+        $("#btn-add-robot").click(function () {
+            $(MEL.toSelector("form-add-robot")).formReset();
+
+            $(MEL.toSelector("modal-add-robot")).modal('show');
+            $(MEL.toSelector("add-robot")).css('display', 'block');
+        });
+
+        $("#btn-add-anchor").click(function () {
+            $(MEL.toSelector("form-add-anchor")).formReset();
+
+            $(MEL.toSelector("modal-add-anchor")).modal('show');
+            $(MEL.toSelector("add-anchor")).css('display', 'block');
+        });
+
+        $(MEL.toSelector("form-add-robot")).on('submit', function (e) {
+            e.preventDefault();
+            var form = $(MEL.toSelector("form-add-robot"));
+            var dto = MEL.toDTO(form);
+            dto['RobotDetail.Active'] = $('#chk-robot-active').is(':checked');
+            var list = robottable.fnGetData();
+
+            //console.log(dto);
+
+            MEL.load({
+                url: '/Restaurants/AddRobot'
+                , dto: dto
+                , callback: function (result) {
+
+                    $(MEL.toSelector("modal-add-robot")).modal('hide');
+
+                    bootbox.alert({
+                        centerVertical: true,
+                        size: "small",
+                        message: "Robot has been added successfully.",
+                        callback: function () { refreshGrid(); }
+                    });
+                }
+            });
+
+        });
+
+        $(MEL.toSelector("form-add-anchor")).on('submit', function (e) {
+            e.preventDefault();
+            var form = $(MEL.toSelector("form-add-anchor"));
+            var dto = MEL.toDTO(form);
+            dto['AnchorDetail.isMainAnchor'] = $('#chk-anchor-main').is(':checked');
+            var list = anchortable.fnGetData();
+
+            //console.log(dto);
+
+            MEL.load({
+                url: '/Restaurants/AddAnchor'
+                , dto: dto
+                , callback: function (result) {
+
+                    $(MEL.toSelector("modal-add-anchor")).modal('hide');
+
+                    bootbox.alert({
+                        centerVertical: true,
+                        size: "small",
+                        message: "Anchor has been added successfully.",
+                        callback: function () { refreshGrid(); }
+                    });
+                }
+            });
+
+        });
+
+        $(MEL.toSelector("form-add-restaurant")).on('submit', function (e) {
+            e.preventDefault();
+            var form = $(MEL.toSelector("form-add-restaurant"));
+            var dto = MEL.toDTO(form);
+            dto['Robots'] = robottable.fnGetData();
+            dto['Anchors'] = anchortable.fnGetData();
+            dto["Active"] = $('#chk-active').is(':checked');
+            // dto['Manager'] = $('#chk-manager').is(':checked');
+
+
+            //console.log(dto);
+
+            MEL.load({
+                url: '/Restaurants/Create'
+                , dto: dto
+                , callback: function (result) {
+                    //console.log(result);
+                    window.location.href = "/Restaurants";
+                    // bootbox.alert({
+                    //     centerVertical: true,
+                    //     size: "small",
+                    //     message: "Restaurant has been added successfully.",
+                    //     callback: function () { window.location.href = "/Restaurants" }
+                    // });
+                }
+            });
+
+        });
+
+        function refreshGrid() {
+            robottable.api().ajax.reload();
+            anchortable.api().ajax.reload();
+        }
+    </script>
+}
+
+
+

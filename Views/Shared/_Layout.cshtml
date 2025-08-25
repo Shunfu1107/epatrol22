@@ -1,0 +1,241 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" href="~/Assets/Image/icon48.ico">
+    <title>@ViewBag.Title</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <!-- Bootstrap 3.3.7 -->
+    <link rel="stylesheet" href="~/Assets/Plugins/bootstrap/dist/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="~/Assets/Plugins/jquery-ui/jquery-ui.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="~/Assets/Plugins/font-awesome/css/all.css">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="~/Assets/Plugins/Ionicons/css/ionicons.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="~/Assets/Templates/Custom/AdminLTE/dist/css/AdminLTE.min.css">
+    <!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+    <link rel="stylesheet" href="~/Assets/Templates/Custom/AdminLTE/dist/css/skins/_all-skins.min.css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="~/Assets/Plugins/html5shiv/html5shiv.min.js"></script>
+    <script src="~/Assets/Plugins/respond/respond.min.js"></script>
+    <![endif]-->
+    <!-- Google Font -->
+    <link rel="stylesheet" href="~/Assets/Plugins/google-fonts/source_sans_pro/font.css">
+
+    <!--Jquery Animation-->
+    <link rel="stylesheet" href="~/Assets/Plugins/Animate/Animate.css">
+
+    <link rel="stylesheet" href="~/Assets/Plugins/extended-user-identity/mel.css">
+    <link rel="stylesheet" href="~/Assets/Templates/App/app.css">
+    <link href="~/Content/bootstrap-datetimepicker.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/Content/bootstrap-datepicker.css" />
+
+    <style>
+        body {
+            padding-right: 0 !important
+        }
+    </style>
+    @RenderSection("Styles", required: false)
+</head>
+<!-- ADD THE CLASS fixed TO GET A FIXED HEADER AND SIDEBAR LAYOUT -->
+<!-- the fixed layout is not compatible with sidebar-mini -->
+<body class="hold-transition skin-blue fixed sidebar-mini">
+    <!-- Site wrapper -->
+    <div class="wrapper">
+
+        @Html.Partial("./Partials/HeaderPartial")
+        @Html.Partial("./Partials/SidebarPartial")
+        <!-- =============================================== -->
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-wrapper">
+            <!-- Content Header (Page header) -->
+            <section class="content-header">
+                <h1>
+                    @ViewBag.Title
+                    <small>@ViewBag.SubTitle</small>
+                </h1>
+            </section>
+            <!-- Main content -->
+            <section class="content">
+
+                @if (ViewBag.InfoMessage != null || ViewBag.InfoTitle != null)
+                {
+                    <div class="alert alert-info alert-dismissible">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                        <h4><i class="icon fa fa-info"></i> @ViewBag.InfoTitle</h4>
+                        @ViewBag.InfoMessage
+                    </div>
+                }
+
+                @if (ViewBag.AlertMessage != null || ViewBag.AlertTitle != null)
+                {
+                    <div class="alert alert-danger alert-dismissible">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                        <h4><i class="icon fa fa-ban"></i> @ViewBag.AlertTitle</h4>
+                        @ViewBag.AlertMessage
+                    </div>
+                }
+
+
+                @if (ViewBag.SuccessMessage != null || ViewBag.SuccessTitle != null)
+                {
+                    <div class="alert alert-success alert-dismissible">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                        <h4><i class="icon fa fa-check"></i> @ViewBag.SuccessTitle</h4>
+                        @ViewBag.SuccessMessage
+                    </div>
+                }
+
+                @RenderBody()
+
+            </section>
+            <!-- /.content -->
+
+
+        </div>
+        <!-- /.content-wrapper -->
+
+        <footer class="main-footer">
+            <div class="pull-right hidden-xs">
+                <b>Version</b> 1.0
+            </div>
+            <strong>Copyright &copy; @DateTime.Now.Year MQuest.</strong> All rights reserved.
+        </footer>
+
+    </div>
+    <!-- ./wrapper -->
+    <!-- jQuery 3 -->
+    <script src="~/Assets/Plugins/jquery/dist/jquery.min.js"></script>
+
+    <!-- Bootstrap 3.3.7 -->
+    <script src="~/Assets/Plugins/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <script src="~/Assets/Plugins/jquery-ui/jquery-ui.min.js"></script>
+
+    <!-- SlimScroll -->
+    <script src="~/Assets/Plugins/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+
+    <!-- FastClick -->
+    <script src="~/Assets/Plugins/fastclick/lib/fastclick.js"></script>
+
+    <script src="~/Assets/Plugins/jquery-validation/dist/jquery.validate.min.js"></script>
+
+    <script src="~/Assets/Plugins/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Assets/Plugins/jquery-validation/dist/jquery.validate.date.js"></script>
+
+    <script src="~/Assets/Plugins/bootbox/dist/bootbox.min.js"></script>
+
+    <script src="~/Assets/Plugins/bootbox/dist/bootbox.locales.min.js"></script>
+
+    <script src="~/Assets/Plugins/extended-user-identity/mel.plugins.js"></script>
+
+    <script src="~/Assets/Plugins/extended-user-identity/mel.core.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    
+        <script src="~/Assets/Plugins/extended-user-identity/mel.menu.js"></script>
+        <script type="text/javascript">
+            $(function () {//solution for this "field must be date ".fixed on 25/02/2022
+                $.validator.methods.date = function (value, element) {
+                    //console.log(value);
+                    //console.log(element);
+                    return this.optional(element) || moment(value, "DD/MM/YYYY", true).isValid() || moment(value, "DD/MM/yyyy hh:mm A", true).isValid() || moment(value, "hh:mm A", true).isValid() || moment(value, "YYYY-MM-DD", true).isValid();
+                    //return this.optional(element) || moment(value, "YYYY-MM-DD", true).isValid();
+                }
+            });
+
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Account/GetConfig',
+                type: 'POST',
+                success: function(result){
+                    
+                }
+            });
+
+            // $.ajax({
+            //     url: '/Account/Restaurant',
+            //     type: 'GET',
+            //     success: function (result) {
+            //         console.log(result.data.length);
+            //         var selectElement = document.getElementById("ddlRestaurant");
+
+            //         // Clear existing options
+            //         selectElement.innerHTML = '';
+
+            //         // Add new options
+            //         var newOptions = result.data;
+
+            //         newOptions.forEach(function (option) {
+            //             var optionElement = document.createElement("option");
+            //             optionElement.value = option.value;
+            //             optionElement.text = option.text;
+            //             selectElement.appendChild(optionElement);
+
+            //             if (option.selected) {
+            //                 optionElement.selected = true;
+            //             }
+            //         });
+
+
+
+            //         if (result.data.length == 0) {
+            //             document.getElementById("displayRest").style.display = "none";
+            //         }
+            //     }
+            // });
+        });
+
+        // Get a reference to the select element
+        // var selectElement = document.getElementById("ddlRestaurant");
+
+        // // Add onchange event listener
+        // selectElement.addEventListener("change", function (event) {
+        //     // Code to execute when the value of the select element changes
+        //     var selectedValue = event.target.value;
+
+        //     $.ajax({
+        //         url: '/Account/RestaurantChange?id=' + selectedValue,
+        //         type: 'GET',
+        //         success: function (result) {
+        //             location.reload();
+        //         }
+        //     });
+        // });
+
+        </script>
+    
+   @* else
+    {
+        <script type="text/javascript">
+            $(document).ready(function () {
+                $('header a.logo').attr('href', '#');
+                $('body').removeClass('sidebar-mini');
+                $('body').addClass('sidebar-collapse');
+
+            });
+        </script>
+    }*@
+    <!-- AdminLTE App -->
+    <script src="~/Assets/Templates/Custom/AdminLTE/dist/js/adminlte.min.js"></script>
+
+    <script src="~/Assets/Templates/App/app.js"></script>
+
+    <!-- Moment -->
+    <script src="~/Scripts/moment.js"></script>
+
+    <!-- DateTimePicker -->
+    <script src="~/Scripts/bootstrap-datetimepicker.js"></script>
+    <script src="~/Scripts/bootstrap-datepicker.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

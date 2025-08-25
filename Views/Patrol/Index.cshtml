@@ -1,0 +1,323 @@
+﻿@{
+    ViewBag.Title = "Patrol";
+}
+
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css"> *@
+}
+
+@{
+    var routes = ViewBag.Routes as List<AdminPortalV8.Models.Epatrol.Route>;
+}
+
+@section scripts {
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#route-table').DataTable({
+                responsive: true
+            });
+            bindButtonEvents();
+        });
+
+            $(document).on("click", ".toggle-auto-patrol", function () {
+            var button = $(this);
+            var routeId = button.data("route-id");
+            var enable = button.attr("data-enable") === "true" ? true : false;
+
+            $.ajax({
+                type: "POST",
+                url: "/Dashboard/ToggleAutoPatrol",
+                data: { routeId: routeId, enable: enable },
+                success: function (response) {
+                    if (response.success) {
+                        location.reload(); // Reload page to reflect updated button
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function () {
+                    alert("Failed to update auto patrol status.");
+                }
+            });
+        });
+
+        const patrolTimers = {};
+
+        function bindButtonEvents() {
+            $('#route-table').on('click', '.start-patrol', function () {
+                var routeId = $(this).data('route-id');
+                var cameraIp = $(this).data('camera-ip');
+                var duration = parseInt($(this).data('duration'));
+                var button = this;
+
+                if (isNaN(duration) || duration <= 0) {
+                    showToast('Invalid duration for this route', 'red');
+                    return;
+                }
+
+                handleStartPatrol(button);
+                startPatrolCycle(routeId, cameraIp, duration);
+            });
+
+            $('#route-table').on('click', '.stop-patrol', function () {
+                var routeId = $(this).data('route-id');
+                var cameraIp = $(this).data('camera-ip');
+                stopPatrolCycle(routeId, cameraIp);
+            });
+        }
+
+        function startPatrolCycle(routeId, cameraIp, duration) {
+            const durationMs = duration * 60 * 1000;
+
+            $.ajax({
+                url: '/Patrol/StartAutoPatrol',
+                type: 'POST',
+                data: { routeId: routeId },
+                success: function (response) {
+                    if (response.success) {
+                        showToast(response.message, 'green');
+                        updateButtonState(routeId, true);
+
+                        const stopTimer = setTimeout(() => {
+                            $.ajax({
+                                url: '/Patrol/StopAutoPatrol',
+                                type: 'POST',
+                                data: { routeId: routeId, cameraIp: cameraIp },
+                                success: function (stopResponse) {
+                                    if (stopResponse.success) {
+                                        showToast(stopResponse.message, 'green');
+                                        updateButtonState(routeId, false);
+
+                                        const startTimer = setTimeout(() => {
+                                            startPatrolCycle(routeId, cameraIp, duration);
+                                        }, durationMs);
+
+                                        patrolTimers[routeId] = { startTimer };
+                                    } else {
+                                        showToast(stopResponse.message, 'red');
+                                    }
+                                },
+                                error: function () {
+                                    showToast('Error stopping auto patrol', 'red');
+                                }
+                            });
+                        }, durationMs);
+
+                        patrolTimers[routeId] = { stopTimer };
+                    } else {
+                        showToast(response.message, 'red');
+                        const button = $(`button[data-route-id="${routeId}"].start-patrol`);
+                        button.removeClass('disabled');
+                        button.css('pointer-events', 'auto');
+                        button.html('<i class="fas fa-play"></i> Start Auto Patrol');
+                    }
+                },
+                error: function (xhr) {
+                    var errorMessage = xhr.responseJSON?.message || 'Error starting auto patrol';
+                    showToast(errorMessage, 'red');
+                    const button = $(`button[data-route-id="${routeId}"].start-patrol`);
+                    button.removeClass('disabled');
+                    button.css('pointer-events', 'auto');
+                    button.html('<i class="fas fa-play"></i> Start Auto Patrol');
+                }
+            });
+        }
+
+        function stopPatrolCycle(routeId, cameraIp) {
+            if (patrolTimers[routeId]) {
+                clearTimeout(patrolTimers[routeId].stopTimer);
+                clearTimeout(patrolTimers[routeId].startTimer);
+                delete patrolTimers[routeId];
+            }
+
+            $.ajax({
+                url: '/Patrol/StopAutoPatrol',
+                type: 'POST',
+                data: { routeId: routeId, cameraIp: cameraIp },
+                success: function (response) {
+                    if (response.success) {
+                        showToast(response.message, 'green');
+                        updateButtonState(routeId, false);
+                    } else {
+                        showToast(response.message, 'red');
+                    }
+                },
+                error: function () {
+                    showToast('Error stopping auto patrol', 'red');
+                }
+            });
+        }
+
+        function updateButtonState(routeId, isRunning) {
+            const $row = $(`tr[data-route-id="${routeId}"]`);
+            const $actionCell = $row.find('td:last');
+            const cameraIp = $row.data('camera-ip');
+            const duration = $row.data('duration');
+            const patrolType = $row.data('patrol-type');
+
+            if (patrolType === "Manual") {
+                $actionCell.html(`
+                    <a href="/Patrol/StartPatrolling?routeId=${routeId}" class="btn btn-primary" style="padding: 5px 15px; width: 150px;" onclick="handleButtonClick(this)">
+                        <i class="fas fa-play"></i> Start
+                    </a>
+                `);
+            } else {
+                $actionCell.html(isRunning
+                    ? `<button class="btn btn-danger stop-patrol" data-route-id="${routeId}" data-camera-ip="${cameraIp}" data-duration="${duration}" style="padding: 5px 15px; width: 150px;">
+                        <i class="fas fa-stop"></i> Stop Auto Patrol
+                    </button>`
+                    : `<button class="btn btn-primary start-patrol" data-route-id="${routeId}" data-camera-ip="${cameraIp}" data-duration="${duration}" style="padding: 5px 15px; width: 150px;">
+                        <i class="fas fa-play"></i> Start Auto Patrol
+                    </button>`);
+            }
+        }
+
+        function handleButtonClick(button) {
+            button.classList.add('disabled');
+            button.style.pointerEvents = "none";
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Please wait...';
+        }
+
+        function handleStartPatrol(button) {
+            button.classList.add('disabled');
+            button.style.pointerEvents = "none";
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+        }
+
+        function showToast(message, bgColor) {
+            let toast = document.createElement("div");
+            Object.assign(toast.style, {
+                position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)",
+                background: bgColor, color: "white", padding: "10px 20px", borderRadius: "5px",
+                fontSize: "14px", zIndex: "1000", opacity: "0.9", transition: "opacity 0.5s"
+            });
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => (toast.style.opacity = "0"), 1000);
+            setTimeout(() => document.body.removeChild(toast), 1500);
+        }
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patrol Page</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Patrols</h3>
+            <div></div>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="route-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Name</th>
+                        <th>Checkpoints</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (routes != null)
+                    {
+                        @for (int i = 0; i < routes.Count; i++)
+                        {
+                            var cameraIp = routes[i].RouteCheckPoints?.FirstOrDefault()?.CheckPoint?.Cameras?.FirstOrDefault()?.Url ?? "";
+                            var duration = routes[i].Duration ?? 0;
+                            <tr data-route-id="@routes[i].RouteId" data-camera-ip="@cameraIp" data-duration="@duration" data-patrol-type="@routes[i].PatrolType.Name">
+                                <td style="padding: 10px;">@(i + 1)</td>
+                                <td style="padding: 10px;">@routes[i].RouteName</td>
+                                <td style="padding: 10px 25px;">
+                                    @if (routes[i].RouteCheckPoints != null && routes[i].RouteCheckPoints.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var checkpoint in routes[i].RouteCheckPoints)
+                                            {
+                                                <li>@(checkpoint.CheckPoint != null ? checkpoint.CheckPoint.CheckPointName : "Checkpoint Not Found")</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No checkpoints available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px 25px;">
+                                    @if (routes[i].RouteSchedules != null && routes[i].RouteSchedules.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var routeschedule in routes[i].RouteSchedules)
+                                            {
+                                                <li>@(routeschedule.Schedule != null ? routeschedule.Schedule.StartTime.ToString() : "N/A")</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No schedule available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px 25px;">
+                                    @if (routes[i].RouteSchedules != null && routes[i].RouteSchedules.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var routeschedule in routes[i].RouteSchedules)
+                                            {
+                                                <li>@(routeschedule.Schedule != null ? routeschedule.Schedule.EndTime.ToString() : "N/A")</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No schedule available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px;" class="@(routes[i].PatrolType.Name == "Manual" ? "status-manual" : "status-auto")">
+                                    @routes[i].PatrolType.Name
+                                </td>
+                                <td style="padding: 10px;">
+                                    @if (routes[i].PatrolType.Name == "Manual")
+                                    {
+                                        <a href="@Url.Action("StartPatrolling", "Patrol", new { routeId = routes[i].RouteId })" class="btn btn-primary" style="padding: 5px 15px; width: 150px;" onclick="handleButtonClick(this)">
+                                            <i class="fas fa-play"></i> Start
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button style="padding: 5px 15px; width: 150px;" class="btn @(routes[i].AutoPatrol ? "btn-danger" : "btn-primary") patrol-action-btn toggle-auto-patrol"
+                                                data-route-id="@routes[i].RouteId"
+                                                data-enable="@(routes[i].AutoPatrol ? "false" : "true")">
+                                            <i class="fas @(routes[i].AutoPatrol ? "fa-stop" : "fa-play")"></i>
+                                            @(routes[i].AutoPatrol ? "Stop" : "Start")
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 10px;">No Patrols available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

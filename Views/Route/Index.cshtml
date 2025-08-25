@@ -1,0 +1,912 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Models.Epatrol.Route
+@{
+    ViewBag.Title = "Route";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css"> *@
+}
+
+@{
+    var routes = ViewBag.Routes as List<AdminPortalV8.Models.Epatrol.Route>;
+    var checkpoints = ViewBag.Checkpoints as List<AdminPortalV8.Models.Epatrol.CheckPoint>;
+    var schedules = ViewBag.Schedules as List<AdminPortalV8.Models.Epatrol.Schedule>;
+}
+
+@section scripts {
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+    <link href="~/lib/select2/css/select2.min.css" rel="stylesheet" />
+    <script src="~/lib/select2/js/select2.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#route-table').DataTable({
+                responsive: true
+            });
+
+            function toggleDurationInterval(selector, durationId, intervalId) {
+                const selectedType = $(selector).val();
+                if (selectedType === '1') { // Manual
+                    $(durationId).hide().find('select').val(null).prop('required', false);
+                } else {
+                    $(durationId).show().find('select').prop('required', true);
+                    $(intervalId).show().find('select').prop('required', true);
+                }
+            }
+
+            // Apply toggle logic on change (Add Modal)
+            $('select[name="PatrolTypeId"]').on('change', function () {
+                toggleDurationInterval(this, '#duration-container-col', '#interval-container-col');
+            }).trigger('change'); // Also run once on load
+
+            // Apply toggle logic on change (Edit Modal)
+            $('#editPatrolType').on('change', function () {
+                toggleDurationInterval(this, '#edit-duration-container', '#edit-interval-container');
+            });
+
+            // Apply again when modal fully shown (ensures it triggers properly)
+            $('#editRouteModal').on('shown.bs.modal', function () {
+                toggleDurationInterval('#editPatrolType', '#edit-duration-container', '#edit-interval-container');
+            });
+
+            //Add New Select for Schedule
+            $(document).on('click', '#add-schedule', function () {
+                var emptyDiv = $('<div>', {
+                    class: ''
+                }).css({
+                    'margin-top': '10px'
+                });
+
+                var newScheduleDiv = $('<div>', {
+                    class: 'rows'
+                }).css({
+                    'display': 'flex',
+                    'margin-top': '10px'
+                });
+
+                var newSchedule = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtSchedule[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '92%'
+                    }
+                }).html(getScheduleOptions);
+
+                var addButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'add-schedule',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-schedule',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newScheduleDiv.append(newSchedule);
+                newScheduleDiv.append(addButton);
+                newScheduleDiv.append(deleteButton);
+
+                $('#schedule-container-col').append(emptyDiv).append(newScheduleDiv);
+            });
+
+            function getScheduleOptions() {
+                return `
+                    @if (schedules != null && schedules.Any())
+                    {
+                        <text><option value="" selected disabled hidden>Choose here</option></text>
+                        @foreach (var schedule in schedules)
+                        {
+                            <text><option value="@schedule.ScheduleId">@schedule.ScheduleName</option></text>
+                        }
+                    }
+                    else
+                    {
+                                    <option disabled>No models available</option>
+                    }
+                `;
+            }
+
+            function typeIdToName(val){ return String(val) === '2' ? 'Auto' : 'Manual'; }
+
+            const cpCache = {}; // { Manual: [{id,text}], Auto: [...] }
+            async function fetchCheckpointsByTypeName(typeName){
+              if (cpCache[typeName]) return cpCache[typeName];
+              const url = '@Url.Action("GetCheckpointsByType", "Route")' + '?type=' + encodeURIComponent(typeName);
+              const res = await fetch(url, { method: 'GET' });
+              if (!res.ok) throw new Error(await res.text());
+              const data = await res.json();
+              cpCache[typeName] = data;
+              return data;
+            }
+
+            function buildOptionsHtml(options, selectedVal){
+              let html = '<option value="" selected disabled hidden>Choose here</option>';
+              options.forEach(o => { html += `<option value="${o.id}"${String(o.id)===String(selectedVal)?' selected':''}>${o.text}</option>`; });
+              return html;
+            }
+
+            function applyOptionsToAllAddSelects(options){
+              $('#checkpoint-container-col .js-checkpoint-select').each(function(){
+                const cur = $(this).val();
+                $(this).html(buildOptionsHtml(options, cur));
+              });
+            }
+
+            $('select[name="PatrolTypeId"]').on('change', reloadAddModalCheckpoints);
+            $('#add-route-module').on('shown.bs.modal', reloadAddModalCheckpoints);
+
+            $(document).off('click', '#add-checkpoint').on('click', '#add-checkpoint', async function(){
+              const typeName = typeIdToName($('select[name="PatrolTypeId"]').val());
+              let options = [];
+              try { options = await fetchCheckpointsByTypeName(typeName); } catch(e){}
+
+              const $row = $('<div class="rows" style="display:flex; align-items:center; margin-top:10px;"></div>');
+              const $sel = $('<select class="form-control js-checkpoint-select" name="txtCheckpoint[]" style="border-radius:5px; padding-left:10px; padding-right:10px; width:92%"></select>')
+                             .html(buildOptionsHtml(options, ''));
+              const $add = $('<i class="fas fa-plus" id="add-checkpoint" style="margin-left:10px; cursor:pointer; color:#333;"></i>');
+              const $del = $('<i class="fas fa-trash" id="delete-checkpoint" style="margin-left:8px; cursor:pointer; color:red;"></i>');
+              $row.append($sel, $add, $del);
+              $('#checkpoint-container-col').append($row);
+            });
+
+            async function reloadAddModalCheckpoints(){
+              const typeId = $('select[name="PatrolTypeId"]').val();
+              if (!typeId){ applyOptionsToAllAddSelects([]); return; }
+              const typeName = typeIdToName(typeId);
+
+              const $sels = $('#checkpoint-container-col .js-checkpoint-select');
+              $sels.prop('disabled', true).html('<option>Loading...</option>');
+              try{
+                const options = await fetchCheckpointsByTypeName(typeName);
+                applyOptionsToAllAddSelects(options);
+              }catch(e){
+                console.error('Load checkpoints failed:', e);
+                applyOptionsToAllAddSelects([]);
+                alert('Failed to load checkpoints for this type.');
+              }finally{
+                $sels.prop('disabled', false);
+              }
+            }
+
+            //Add New Select for CheckPoint
+            // $(document).on('click', '#add-checkpoint', function () {
+            //     var newCheckpointDiv = $('<div>', {
+            //         class: 'rows'
+            //     }).css({
+            //         'display': 'flex',
+            //         'margin-top': '10px'
+            //     });
+
+            //     var newCheckpoint = $('<select>', {
+            //         class: 'form-control',
+            //         name: 'txtCheckpoint[]',
+            //         css: {
+            //             'border-radius': '5px',
+            //             'padding-left': '10px',
+            //             'padding-right': '10px',
+            //             'width': '92%'
+            //         }
+            //     }).html(getCheckpointOptions());
+
+            //     var addButton = $('<i>', {
+            //         class: 'fas fa-plus',
+            //         id: 'add-checkpoint',
+            //         style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
+            //     });
+
+            //     var deleteButton = $('<i>', {
+            //         class: 'fas fa-trash',
+            //         id: 'delete-checkpoint',
+            //         style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+            //     });
+
+            //     newCheckpointDiv.append(newCheckpoint);
+            //     newCheckpointDiv.append(addButton);
+            //     newCheckpointDiv.append(deleteButton);
+
+            //     $('#checkpoint-container-col').append(newCheckpointDiv);
+            // });
+
+            function getCheckpointOptions() {
+                return `
+                    @if (checkpoints != null && checkpoints.Any())
+                    {
+                        <text><option value="" selected disabled hidden>Choose here</option></text>
+                        @foreach (var checkpoint in checkpoints)
+                        {
+                            <text><option value="@checkpoint.CheckPointId">@checkpoint.CheckPointName</option></text>
+                        }
+                    }
+                    else
+                    {
+                                    <option disabled>No models available</option>
+                    }
+                `;
+            }
+
+            $(document).on('click', '#edit-checkpoint', function () {
+                var newDiv = $('<div>', {
+                    class: 'rows',
+                    style: 'display: flex; margin-top: 10px'
+                });
+
+                var newEditCheckPoint = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtEditCheckPoint[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '92%'
+                    }
+                }).html(getCheckpointOptions());
+
+                var editButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'edit-checkpoint',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-checkpoint',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newEditCheckPoint);
+                newDiv.append(editButton);
+                newDiv.append(deleteButton);
+                $('#edit-checkpoint-container').append(newDiv);
+            });
+
+            $(document).on('click', '#edit-schedule', function () {
+                var newDiv = $('<div>', {
+                    class: 'rows',
+                    style: 'display: flex; margin-top: 10px'
+                });
+
+                var newEditSchedule = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtEditSchedule[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '92%'
+                    }
+                }).html(getScheduleOptions());
+
+                var editButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'edit-schedule',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-schedule',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newEditSchedule);
+                newDiv.append(editButton);
+                newDiv.append(deleteButton);
+                $('#edit-schedule-container').append(newDiv);
+            });
+
+            $(document).on('click', '#delete-checkpoint', function () {
+                const $rowsParent = $(this).closest('.rows').parent();      // container that holds the .rows
+                  const $rows = $rowsParent.children('.rows');
+
+                  if ($rows.length > 1) {
+                    $(this).closest('.rows').remove();
+                  } else {
+                    // keep one empty row; just clear selection
+                    const $sel = $(this).closest('.rows').find('select');
+                    // ensure placeholder exists and select it
+                    if ($sel.find('option[value=""]').length === 0) {
+                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
+                    }
+                    $sel.val('');
+                    // Optional: show a hint
+                    alert('At least one checkpoint is required.');
+                  }
+            });
+
+            $(document).on('click', '#delete-schedule', function () {
+                 const $rowsParent = $(this).closest('.rows').parent();
+                 const $rows = $rowsParent.children('.rows');
+
+                  if ($rows.length > 1) {
+                    $(this).closest('.rows').remove();
+                  } else {
+                    const $sel = $(this).closest('.rows').find('select');
+                    if ($sel.find('option[value=""]').length === 0) {
+                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
+                    }
+                    $sel.val('');
+                    alert('At least one schedule is required.');
+                  }
+            });
+        });
+
+        document.getElementById('patrolMapInput').addEventListener('change', function (event) {
+            var input = event.target;
+
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+
+                if (file.type === 'image/jpeg' || file.type === 'image/png') {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var img = document.getElementById('map-preview');
+                        img.src = e.target.result;
+                        img.style.display = 'block';
+                    }
+
+                    reader.readAsDataURL(file);
+                } else {
+                    // If the file type is invalid, alert the user
+                    alert('Please upload a valid image file (JPG, JPEG, or PNG).');
+                    input.value = '';
+                    document.getElementById('map-preview').style.display = 'none';
+                }
+            }
+        });
+
+        document.getElementById('editPatrolMap').addEventListener('change', function (event) {
+            var input = event.target;
+
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+
+                if (file.type === 'image/jpeg' || file.type === 'image/png') {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var img = document.getElementById('editMap-preview');
+                        img.src = e.target.result;
+                        img.style.display = 'block';
+                    }
+
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please upload a valid image file (JPG, JPEG, or PNG).');
+                    input.value = '';
+                    document.getElementById('editMap-preview').style.display = 'none';
+                }
+            }
+        });
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Route Page</title>
+    <!--JQuery for Modal Population -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    @* <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script> *@
+    @* <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script> *@
+
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Routes</h3>
+            <div>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#add-route-module" id="btn-add-module">
+                    Add Route
+                </button>
+            </div>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="route-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Name</th>
+                        <th>Checkpoints</th>
+                        <th>Schedule</th>
+                        <th>Duration</th>
+                        <th>Interval Time</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (routes != null)
+                    {
+                        @for (int i = 0; i < routes.Count; i++)
+                        {
+                            <tr>
+                                <td style="padding: 10px;">@(i + 1)</td>
+                                <td style="padding: 10px;">
+                                    @routes[i].RouteName
+                                </td>
+                                <td style="padding: 10px 25px;">
+                                    <!-- Iterate over each RouteCheckPoint for the current route -->
+                                    @if (routes[i].RouteCheckPoints != null && routes[i].RouteCheckPoints.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var routeCheckPoint in routes[i].RouteCheckPoints)
+                                            {
+                                                <li>@routeCheckPoint.CheckPoint.CheckPointName</li> <!-- Access the CheckPoint property -->
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No checkpoints available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px 25px;">
+                                    <!-- Iterate over each camera for the current checkpoint -->
+                                    @if (routes[i].RouteSchedules != null && routes[i].RouteSchedules.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var routeSchedule in routes[i].RouteSchedules)
+                                            {
+                                                <li>@routeSchedule.Schedule.ScheduleName</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No schedule available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px;">
+                                    @{
+                                        var duration = routes[i].Duration;
+                                        var displayDuration = duration > 0
+                                        ? (duration >= 60
+                                        ? (duration / 60) + " min"
+                                        : (duration) + " sec")
+                                        : "";
+                                    }
+                                    @displayDuration
+                                </td>
+                                <td style="padding: 10px;">
+                                    @{
+                                        var sleepTime = routes[i].SleepTime;
+                                        var displaySleepTime = sleepTime > 0
+                                        ? (sleepTime >= 3600
+                                        ? (sleepTime / 3600) + " hrs"
+                                        : (sleepTime / 60) + " min")
+                                        : "";
+                                    }
+                                    @displaySleepTime
+                                </td>
+                                <td style="padding: 10px;" class="@(routes[i].PatrolType.Name == "Manual" ? "status-manual" : "status-auto")">
+                                    @routes[i].PatrolType.Name
+                                </td>
+                                <td style="padding: 10px;">
+                                    <button type="button" class="btn btn-warning" style="padding: 5px 15px;" data-toggle="modal" data-target="#editRouteModal"
+                                            data-id="@routes[i].RouteId"
+                                            data-name="@routes[i].RouteName"
+                                            data-type="@routes[i].PatrolTypeId"
+                                            data-duration="@routes[i].Duration"
+                                            data-interval="@routes[i].SleepTime"
+                                    @* data-map="@(routes[i].Image != null ? Convert.ToBase64String(routes[i].Image) : null)" *@
+                                            data-checkpoints="@string.Join(",", routes[i].RouteCheckPoints.Select(cp => cp.CheckPointId))"
+                                            data-schedules="@string.Join(",", routes[i].Schedules.Select(sch => sch.ScheduleId))">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 15px;" data-toggle="modal" data-target="#deleteRouteModal"
+                                            data-id="@routes[i].RouteId">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 10px;">No routes available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Route Modal -->
+    <div class="modal fade" id="add-route-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addCheckpointForm" action="@Url.Action("CreateNewRoute", "Route")" method="post" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Route</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section" id="modules-add-route">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Type <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="PatrolTypeId" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%" required>
+                                            <option value="1">Manual</option>
+                                            <option value="2">Auto</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label>Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="RouteName" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required />
+                                    </div>
+                                </div>
+                                <div class="row" id="checkpoint-container">
+                                    <div class="col-md-6" style="margin-top: 15px;" id="checkpoint-container-col">
+                                        <label>Checkpoint <span class="text-danger">*</span></label>
+                                        <div class="rows" style="display: flex; align-items: center;">
+                                            <select class="form-control js-checkpoint-select" name="txtCheckpoint[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 100%;">
+                                                <option value="" selected disabled hidden>Choose here</option>
+                                                @if (checkpoints != null && checkpoints.Any())
+                                                {
+                                                    foreach (var checkpoint in checkpoints)
+                                                    {
+                                                        <option value="@checkpoint.CheckPointId">@checkpoint.CheckPointName</option>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <option disabled>No checkpoint available</option>
+                                                }
+                                            </select>
+                                            <i class="fas fa-plus" id="add-checkpoint" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                            <i class="fas fa-trash" id="delete-checkpoint" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6" style="margin-top: 15px;" id="schedule-container-col">
+                                        <label>Schedule <span class="text-danger">*</span></label>
+                                        <div class="rows" style="display: flex; align-items: center;">
+                                            <select class="form-control" name="txtSchedule[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 100%;">
+                                                <option value="" selected disabled hidden>Choose here</option>
+                                                @if (schedules != null && schedules.Any())
+                                                {
+                                                    foreach (var schedule in schedules)
+                                                    {
+                                                        <option value="@schedule.ScheduleId">@schedule.ScheduleName</option>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <option disabled>No schedule available</option>
+                                                }
+                                            </select>
+                                            <i class="fas fa-plus" id="add-schedule" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                            <i class="fas fa-trash" id="delete-schedule" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6" style="margin-top: 15px;" id="duration-container-col">
+                                        <label for="Duration">Duration</label>
+                                        <select asp-for="Duration" class="form-control" asp-items="@ViewBag.DurationOptions">
+                                            <option value="">-- Select Duration --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6" style="margin-top: 15px;" id="interval-container-col">
+                                        <label for="Interval">Interval</label>
+                                        <select asp-for="SleepTime" class="form-control" asp-items="@ViewBag.IntervalOptions">
+                                            <option value="">-- Select Interval Time --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row" id="schedule-container">
+                                    @*  <div class="col-md-6" style="margin-top: 15px;" id="map-container-col">
+                                        <label>Patrol Map <span class="text-danger">*</span></label>
+                                        <div style="display: flex; align-items: center; flex-direction: column;">
+                                            <img id="map-preview" src="" alt="Map Preview" style="display:none; max-width: 100%; height: auto; margin-bottom: 10px;" />
+
+                                            <input type="file" class="form-control" name="patrolMap" id="patrolMapInput" accept=".jpg, .jpeg, .png" />
+                                        </div>
+                                    </div> *@
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="submit" class="btn btn-primary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Route Modal -->
+    <div class="modal fade" id="deleteRouteModal" tabindex="-1" role="dialog" aria-labelledby="deleteRouteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteRouteModalLabel">Delete Route</h5>
+                </div>
+                <form id="deleteRouteForm" action="@Url.Action("DeleteRoute", "Route")" method="post">
+                    <input type="hidden" id="deleteRouteId" name="RouteId" />
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this Route?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Route Modal -->
+    <div class="modal fade" id="editRouteModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editRouteForm" action="@Url.Action("EditRoute", "Route")" method="post" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Route</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="hidden" name="RouteId" id="editRouteId" />
+                                    <label>Type <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="editPatrolType" name="PatrolTypeId" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 86%" required>
+                                        <option value="1">Manual</option>
+                                        <option value="2">Auto</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editRouteName">Route Name</label>
+                                    <input type="text" class="form-control" id="editRouteName" name="RouteName" style="border-radius: 5px; width: 86%" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6" id="edit-checkpoint-container" style="margin-top: 15px;">
+                                    <label for="editCheckpointSelect">Select Checkpoints</label>
+                                    <div id="checkpoint-inputs">
+                                        <!-- checkpoint rows will be dynamically inserted here via JavaScript -->
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="edit-schedule-container" style="margin-top: 15px;">
+                                    <label for="editScheduleSelect">Select Schedules</label>
+                                    <div id="schedule-inputs">
+                                        <!-- Schedule rows will be dynamically inserted here via JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6" id="edit-duration-container" style="margin-top: 15px;">
+                                    <label for="Duration">Duration</label>
+                                    <select asp-for="Duration" class="form-control" asp-items="@ViewBag.DurationOptions" required>
+                                        <option value="">-- Select Duration --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6" id="edit-interval-container" style="margin-top: 15px;">
+                                    <label for="Interval">Interval</label>
+                                    <select asp-for="SleepTime" class="form-control" asp-items="@ViewBag.IntervalOptions" required>
+                                        <option value="">-- Select Interval Time --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                @* <div class="col-md-6" id="map-container-col" style="margin-top: 15px;">
+                                    <label>Patrol Map <span class="text-danger">*</span></label>
+                                    <div style="display: flex; align-items: center; flex-direction: column; margin-top: 2px;">
+                                        <img id="editMap-preview" src="" alt="Map Preview" style="display:none; max-width: 100%; height: auto; margin-bottom: 10px;" />
+                                        <input type="file" class="form-control" id="editPatrolMap" name="PatrolMap" accept=".jpg, .jpeg, .png" />
+                                    </div>
+                                </div> *@
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle the Delete Modal population
+        $('#deleteRouteModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var routeId = button.data('id');
+            $(this).find('#deleteRouteId').val(routeId);
+        });
+
+        // ===== Helpers for EDIT modal checkpoint filtering =====
+        function _typeIdToName(v) { return String(v) === '2' ? 'Auto' : 'Manual'; }
+
+        const _editCpCache = {}; // { Manual:[{id,text}], Auto:[...] }
+        async function _fetchAllowedByTypeId(typeId) {
+          const typeName = _typeIdToName(typeId);
+          if (_editCpCache[typeName]) return _editCpCache[typeName];
+          const res = await fetch('@Url.Action("GetCheckpointsByType", "Route")?type=' + encodeURIComponent(typeName), { method: 'GET' });
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json(); // [{ id, text }]
+          _editCpCache[typeName] = data;
+          return data;
+        }
+
+        function _buildOptions(options, selected) {
+          let html = '<option value="" selected disabled hidden>Choose here</option>';
+          for (const o of options) {
+            html += `<option value="${o.id}"${String(o.id)===String(selected) ? ' selected' : ''}>${o.text}</option>`;
+          }
+          return html;
+        }
+
+        async function _renderCheckpointRows(routeId, typeId, { reset } = {}) {
+          const allowed = await _fetchAllowedByTypeId(typeId);
+          const $wrap = $('#checkpoint-inputs').empty();
+
+          if (reset) {
+            const row = `
+              <div class="rows" style="display:flex;align-items:center;">
+                <select class="form-control js-checkpoint-select" name="txtEditCheckPoint[]"
+                        style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:10px;" required>
+                  ${_buildOptions(allowed, '')}
+                </select>
+                <i class="fas fa-plus" id="edit-checkpoint" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
+                <i class="fas fa-trash" id="delete-checkpoint" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
+              </div>`;
+            $wrap.append(row);
+            return;
+          }
+
+          // Load existing checkpoints for the route
+          const resp = await fetch('/Route/GetCheckPoints?routeId=' + routeId);
+          const data = resp.ok ? await resp.json() : { relatedCheckPoints: [] };
+          const list = (data.relatedCheckPoints && data.relatedCheckPoints.length)
+            ? data.relatedCheckPoints
+            : [{ checkPointId: '', checkPointName: '' }];
+
+          list.forEach(cp => {
+            const inAllowed = allowed.some(o => String(o.id) === String(cp.checkPointId));
+            const warningOpt = (cp.checkPointId && !inAllowed)
+              ? `<option value="${cp.checkPointId}" selected>${cp.checkPointName} (not allowed for ${_typeIdToName(typeId)})</option>` : '';
+            const row = `
+              <div class="rows" style="display:flex;align-items:center;">
+                <select class="form-control js-checkpoint-select" name="txtEditCheckPoint[]"
+                        style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:10px;" required>
+                  ${warningOpt}${_buildOptions(allowed, cp.checkPointId || '')}
+                </select>
+                <i class="fas fa-plus" id="edit-checkpoint" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
+                <i class="fas fa-trash" id="delete-checkpoint" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
+              </div>`;
+            $wrap.append(row);
+          });
+        }
+        // ===== Populate the Edit Modal =====
+        $('#editRouteModal').off('show.bs.modal').on('show.bs.modal', async function (event) {
+          const button   = $(event.relatedTarget);
+          const routeId  = button.data('id');
+          const routeName= button.data('name');
+          const typeId   = String(button.data('type')); // 1/2
+          const duration = button.data('duration');
+          const interval = button.data('interval');
+
+          const $m = $(this);
+          $m.find('#editRouteId').val(routeId);
+          $m.find('#editRouteName').val(routeName);
+          $m.find('#editPatrolType').val(typeId);
+          $m.find('#edit-duration-container select').val(duration);
+          $m.find('#edit-interval-container select').val(interval);
+          $m.data('prev-type', typeId);
+
+          try {
+            await _renderCheckpointRows(routeId, typeId);
+          } catch (e) {
+            console.error(e);
+            $('#checkpoint-inputs').html('<div class="text-danger">Failed to load checkpoints.</div>');
+          }
+
+          // Schedules (kept as-is)
+          $.ajax({
+            url: '/Route/GetSchedules',
+            data: { routeId: routeId },
+            success: function (data) {
+              $('#schedule-inputs').empty();
+              if (data && Array.isArray(data.relatedSchedules) && data.relatedSchedules.length > 0) {
+                data.relatedSchedules.forEach(function (schedule) {
+                  var scheduleRow = `
+                    <div class="rows" style="display:flex;align-items:center;">
+                      <select class="form-control" name="txtEditSchedule[]"
+                              style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:5px;" required>
+                        <option value="${schedule.scheduleId}">${schedule.scheduleName}</option>
+                        ${data.allSchedules.map(s => `<option value="${s.scheduleId}">${s.scheduleName}</option>`).join('')}
+                      </select>
+                      <i class="fas fa-plus" id="edit-schedule" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
+                      <i class="fas fa-trash" id="delete-schedule" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
+                    </div>`;
+                  $('#schedule-inputs').append(scheduleRow);
+                });
+              } else {
+                var emptyScheduleRow = `
+                  <div class="rows" style="display:flex;align-items:center;">
+                    <select class="form-control" name="txtEditSchedule[]"
+                            style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:10px;" required>
+                      <option value="" disabled selected>Choose Here</option>
+                      ${data.allSchedules.map(s => `<option value="${s.scheduleId}">${s.scheduleName}</option>`).join('')}
+                    </select>
+                    <i class="fas fa-plus" id="edit-schedule" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
+                    <i class="fas fa-trash" id="delete-schedule" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
+                  </div>`;
+                $('#schedule-inputs').append(emptyScheduleRow);
+              }
+            },
+            error: function (xhr) { console.error("Error fetching schedules:", xhr.responseText); }
+          });
+        });
+
+        // ===== Confirm and reset when changing Type in EDIT =====
+        $('#editPatrolType').off('change.confirmType').on('change.confirmType', async function () {
+            const $m   = $('#editRouteModal');
+            const prev = $m.data('prev-type');
+            const next = $(this).val();
+            if (prev === next) return;
+
+            if (!window.confirm('Changing the Type will remove all selected checkpoints and you will need to select them again. Continue?')) {
+                $(this).val(prev).trigger('change'); // restore the old value
+                return;
+            }
+
+            $m.data('prev-type', next);
+            try {
+                await _renderCheckpointRows($('#editRouteId').val(), next, { reset: true });
+            } catch (e) { console.error(e); }
+        });
+
+        // ===== Override "+" add checkpoint in EDIT to keep it filtered =====
+        $(document).off('click', '#edit-checkpoint').on('click', '#edit-checkpoint', async function () {
+            const typeId  = $('#editPatrolType').val();
+            const allowed = await _fetchAllowedByTypeId(typeId);
+            const row = `
+                <div class="rows" style="display:flex;align-items:center;">
+                    <select class="form-control js-checkpoint-select" name="txtEditCheckPoint[]"
+                        style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:10px;" required>
+                        ${_buildOptions(allowed,'')}
+                    </select>
+                    <i class="fas fa-plus" id="edit-checkpoint" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
+                    <i class="fas fa-trash" id="delete-checkpoint" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
+                </div>`;
+            $('#checkpoint-inputs').append(row);
+        });
+
+        // delete checkpoint row uses your existing delegated handler: $(document).on('click','#delete-checkpoint',...)
+    </script>
+</body>
+</html>

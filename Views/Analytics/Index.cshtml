@@ -1,0 +1,652 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Models.Analytic.AnalyticViewModel
+
+@{
+    ViewBag.Title = "Analytics";
+    ViewBag.SubTitle = "Manage Analytics";
+
+    //var viewRestaurant = @AppModuleKeys.Restaurant.ViewPrimaryKey;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+
+    <style>
+        .filter{
+            position: absolute;
+            left: 50%;
+            top: 0px;
+
+        }
+
+        .filter button{
+                background: white;
+                border: 1px solid black;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+                margin-left: -3px;
+        }
+
+        .activeOrdersBtn, .activeRequestsBtn, .activeDurationBtn {
+            background: lightgrey !important;
+        }
+    </style>
+}
+
+
+        <div class="box box-info">
+            <div class="box-body">
+                <div class="row">
+                    <div class="form-group col-sm-3">
+                        @Html.LabelFor(model => model.StartDate, htmlAttributes: new { @class = "control-label col-md-2", @style="margin-top:10px" })
+                        <div class="col-md-10">
+                            <div class='input-group datepicker'>
+                        @Html.TextBoxFor(model => model.StartDate, htmlAttributes: new { @class = "form-control", autocomplete = "off", @id = "txtStart"})
+                                <span class="input-group-addon" id="startPicker">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="form-group col-sm-3">
+                        @Html.LabelFor(model => model.EndDate, htmlAttributes: new { @class = "control-label col-md-2", @style = "margin-top:10px" })
+                        <div class="col-md-10">
+                            <div class='input-group datepicker'>
+                                @Html.TextBoxFor(model => model.EndDate, htmlAttributes: new { @class = "form-control", autocomplete = "off", @id="txtEnd"})
+                                <span class="input-group-addon" id="endPicker">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="form-group col-sm-3">
+                        @Html.LabelFor(model => model.RestaurantId, htmlAttributes: new { @class = "control-label col-md-5", @style = "margin-top:10px" })
+                        <div class="col-md-7">
+                            @Html.DropDownListFor(model=>model.RestaurantId, Model.Restaurants, new{@class = "form-control", @id="ddlRest"})
+                            
+                        </div>
+                    </div>
+
+                    <div class="form-group col-sm-3">
+                        @Html.LabelFor(model => model.RobotId, htmlAttributes: new { @class = "control-label col-md-3", @style = "margin-top:10px" })
+                        <div class="col-md-9">
+                            @Html.DropDownListFor(model => model.RobotId, Model.Robots, new { @class = "form-control", @id="ddlRobot" })
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px">
+                    <!-- Completed Orders -->
+                    <div class="col-md-4 col-lg-4 mb-4">
+                        <div class="info-box" style="height: 100px;">
+                            <span class="info-box-icon bg-info" style="height: 100%; display: flex; justify-content: center; align-items: center;">
+                                <i class=" fa fa-receipt" style="height: 100%; width: auto; display: flex; align-items: center;"></i>
+                            </span>
+                            <div class="info-box-content" style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <p class="info-box-text">Completed Orders</p>
+                                    <span class="info-box-number">@Model.TotalCompletedOrders</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Additional Requests -->
+                    <div class="col-md-4 col-lg-4 mb-4">
+                        <div class="info-box" style="height: 100px;">
+                            <span class="info-box-icon bg-info" style="height: 100%; display: flex; justify-content: center; align-items: center;">
+                                <i class="fa fa-bell" style="height: 100%; width: auto; display: flex; align-items: center;"></i>
+                            </span>
+                            <div class="info-box-content" style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <p class="info-box-text">Additional requests served</p>
+                                    <span class="info-box-number">@Model.TotalServedRequests</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Avg Orders/Requests -->
+                    <div class="col-md-4 col-lg-4 mb-4">
+                        <div class="info-box" style="height: 100px;">
+                            <span class="info-box-icon bg-info" style="height: 100%; display: flex; justify-content: center; align-items: center;">
+                                <i class="fa fa-shopping-cart" style="height: 100%; width: auto; display: flex; align-items: center;"></i>
+                            </span>
+                            <div class="info-box-content" style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <p class="info-box-text">Average order and request</p>
+                                    <span class="info-box-number">@Model.AverageOrderRequestTime min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        <div class="row" style="margin-top:15px">
+            <!-- Orders -->
+            <div class="col-md-4 col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Orders</h4>
+                        <div class="card-tools filter">
+                            @*                             <button class="activeOrdersBtn" onclick="ordersTimeFrame(this)" value="today">Today</button>
+                            *@                            <button class="activeOrdersBtn" onclick="ordersTimeFrame(this)" value="custom">Custom</button>
+                            <button onclick="ordersTimeFrame(this)" value="today">Today</button>
+                            <button onclick="ordersTimeFrame(this)" value="weekly">Weekly</button>
+                            <button onclick="ordersTimeFrame(this)" value="monthly">Monthly</button>
+                            <button onclick="ordersTimeFrame(this)" value="yearly">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="position-relative mb-4">
+                            <div class="chartjs-size-monitor">
+                                <div class="chartjs-size-monitor-expand">
+                                    <div class=""></div>
+                                </div>
+                                <div class="chartjs-size-monitor-shrink">
+                                    <div class=""></div>
+                                </div>
+                            </div>
+                            <canvas id="orders-chart" class="chartjs-chart" data-colors="[&quot;--vz-primary&quot;]" width="705" height="300" style="display: block; box-sizing: border-box; width: 100%; height: auto;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests -->
+            <div class="col-md-4 col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Requests</h4>
+                        <div class="card-tools filter">
+@*                             <button class="activeRequestsBtn" onclick="requestsTimeFrame(this)" value="today">Today</button>
+*@                            <button class="activeRequestsBtn" onclick="requestsTimeFrame(this)" value="custom">Custom</button>
+                            <button onclick="requestsTimeFrame(this)" value="today">Today</button>
+                            <button onclick="requestsTimeFrame(this)" value="weekly">Weekly</button>
+                            <button onclick="requestsTimeFrame(this)" value="monthly">Monthly</button>
+                            <button onclick="requestsTimeFrame(this)" value="yearly">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="position-relative mb-4">
+                            <div class="chartjs-size-monitor">
+                                <div class="chartjs-size-monitor-expand">
+                                    <div class=""></div>
+                                </div>
+                                <div class="chartjs-size-monitor-shrink">
+                                    <div class=""></div>
+                                </div>
+                            </div>
+                            <canvas id="requests-chart" class="chartjs-chart" data-colors="[&quot;--vz-primary&quot;]" width="705" height="300" style="display: block; box-sizing: border-box; width: 100%; height: auto;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px">
+            <!-- Average Delivery Duration -->
+            <div class="col-md-4 col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Average Delivery Duration (minutes)</h4>
+                        <div class="card-tools filter">
+                            <button class="activeDurationBtn" onclick="durationTimeFrame(this)" value="custom">Custom</button>
+                            <button onclick="durationTimeFrame(this)" value="today">Today</button>
+                            <button onclick="durationTimeFrame(this)" value="weekly">Weekly</button>
+                            <button onclick="durationTimeFrame(this)" value="monthly">Monthly</button>
+                            <button onclick="durationTimeFrame(this)" value="yearly">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="position-relative mb-4">
+                            <div class="chartjs-size-monitor">
+                                <div class="chartjs-size-monitor-expand">
+                                    <div class=""></div>
+                                </div>
+                                <div class="chartjs-size-monitor-shrink">
+                                    <div class=""></div>
+                                </div>
+                            </div>
+                            <canvas id="duration-chart" class="chartjs-chart" data-colors="[&quot;--vz-primary&quot;]" width="705" height="300" style="display: block; box-sizing: border-box; width: 100%; height: auto;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+ 
+
+
+
+
+@section Scripts {
+
+    <script type="text/javascript">
+
+        $('.datepicker').datetimepicker({
+            useCurrent: false,
+            format: 'DD/MM/YYYY'
+        });
+
+        var previousValue = $('#txtStart').val();
+        var previousEnd = $('#txtEnd').val();
+        var calendarOpen = false;
+
+        var ddlRest = document.getElementById("ddlRest");
+        var ddlRobot = document.getElementById("ddlRobot");
+
+        // Add onchange event listener
+        ddlRest.addEventListener("change", function (event) {
+            // Code to execute when the value of the select element changes
+            var selectedValue = event.target.value;
+
+            $.ajax({
+                url: '/Analytics/RestaurantChange?id=' + selectedValue,
+                type: 'GET',
+                success: function (result) {
+                    location.reload();
+                }
+            });
+        });
+
+        // Add onchange event listener
+        ddlRobot.addEventListener("change", function (event) {
+            // Code to execute when the value of the select element changes
+            var selectedValue = event.target.value;
+
+            $.ajax({
+                url: '/Analytics/RobotChange?id=' + selectedValue,
+                type: 'GET',
+                success: function (result) {
+                    location.reload();
+                }
+            });
+        });
+
+        $('#startPicker').on('click', function () {
+            // Set the calendarOpen flag to true
+            calendarOpen = true;
+        });
+
+        $('#endPicker').on('click', function () {
+            // Set the calendarOpen flag to true
+            calendarOpen = true;
+        });
+
+        // Add an event listener for the dp.hide event (triggered when calendar closes)
+        $('.datepicker').on('dp.hide', function () {
+            // Check if the calendar was open
+            if (calendarOpen) {
+                // Reset the calendarOpen flag
+                calendarOpen = false;
+                if ($('#txtStart').val() != previousValue)
+                    StartChange();
+                else if ($('txtEnd').val() != previousEnd)
+                    EndChange();
+            }
+        });
+
+        // Function to handle the input change
+        function StartChange() {
+            var selectedValue = $("#txtStart").val();
+            $.ajax({
+                url: '/Analytics/StartChange?dates=' + selectedValue,
+                type: 'GET',
+                success: function (result) {
+                    location.reload();
+                }
+            });
+        }
+
+        // Function to handle the input change
+        function EndChange() {
+            var selectedValue = $("#txtEnd").val();
+            $.ajax({
+                url: '/Analytics/EndChange?dates=' + selectedValue,
+                type: 'GET',
+                success: function (result) {
+                    location.reload();
+                }
+            });
+        }
+
+
+        </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha512-UXumZrZNiOwnTcZSHLOfcTs0aos2MzBWHXOHOuB0J/R44QB0dwY5JgfbvljXcklVf65Gc4El6RjZ+lnwd2az2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js" integrity="sha512-wUYbRPLV5zs6IqvWd88HIqZU/b8TBx+I8LEioQ/UC0t5EMCLApqhIAnUg7EsAzdbhhdgW07TqYDdH3QEXRcPOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+
+        // Orders Chart
+        var CustomOrderBarLabel = @Html.Raw(Json.Serialize(ViewBag.CustomOrderBarLabel));
+        var CustomOrderBarValue = @Html.Raw(Json.Serialize(ViewBag.CustomOrderBarValue));
+        var TodayOrderBarLabel = @Html.Raw(Json.Serialize(ViewBag.TodayOrderBarLabel));
+        var TodayOrderBarValue = @Html.Raw(Json.Serialize(ViewBag.TodayOrderBarValue));
+        var WeeklyOrderBarLabel = @Html.Raw(Json.Serialize(ViewBag.WeeklyOrderBarLabel));
+        var WeeklyOrderBarValue = @Html.Raw(Json.Serialize(ViewBag.WeeklyOrderBarValue));
+        var MonthlyOrderBarLabel = @Html.Raw(Json.Serialize(ViewBag.MonthlyOrderBarLabel));
+        var MonthlyOrderBarValue = @Html.Raw(Json.Serialize(ViewBag.MonthlyOrderBarValue));
+        var YearlyOrderBarLabel = @Html.Raw(Json.Serialize(ViewBag.YearlyOrderBarLabel));
+        var YearlyOrderBarValue = @Html.Raw(Json.Serialize(ViewBag.YearlyOrderBarValue));
+
+
+        function initializeOrdersChart() {
+            var ordersChartCanvas = document.getElementById('orders-chart').getContext('2d');
+            var orderlabels = CustomOrderBarLabel;
+            var ordervalues = CustomOrderBarValue;
+            // var orderlabels = TodayOrderBarLabel;
+            // var ordervalues = TodayOrderBarValue;
+
+
+            window.ordersChart = new Chart(ordersChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: orderlabels,
+                    datasets: [{
+                        label: 'Orders',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        data: ordervalues
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+
+        function ordersTimeFrame(button) {
+            document.querySelectorAll('.card-tools button').forEach(btn => {
+                btn.classList.remove('activeOrdersBtn');
+            });
+
+            button.classList.add('activeOrdersBtn');
+
+
+            var orderlabels = [], ordervalues = [];
+
+            switch (button.value) {
+                case 'custom':
+                    orderlabels = CustomOrderBarLabel;
+                    ordervalues = CustomOrderBarValue;
+                    break;
+                case 'today':
+                    orderlabels = TodayOrderBarLabel;
+                    ordervalues = TodayOrderBarValue;
+                    break;
+                case 'weekly':
+                    orderlabels = WeeklyOrderBarLabel;
+                    ordervalues = WeeklyOrderBarValue;
+                    break;
+                case 'monthly':
+                    orderlabels = MonthlyOrderBarLabel;
+                    ordervalues = MonthlyOrderBarValue;
+                    break;
+                case 'yearly':
+                    orderlabels = YearlyOrderBarLabel;
+                    ordervalues = YearlyOrderBarValue;
+                    break;
+                default:
+                    break;
+            }
+
+            window.ordersChart.data.labels = orderlabels;
+            window.ordersChart.data.datasets[0].data = ordervalues;
+            window.ordersChart.update();
+        }
+
+
+        // Requests Chart
+        var CustomRequestBarLabel = @Html.Raw(Json.Serialize(ViewBag.CustomRequestBarLabel));
+        var CustomRequestBarValue = @Html.Raw(Json.Serialize(ViewBag.CustomRequestBarValue));
+        var TodayRequestBarLabel = @Html.Raw(Json.Serialize(ViewBag.TodayRequestBarLabel));
+        var TodayRequestBarValue = @Html.Raw(Json.Serialize(ViewBag.TodayRequestBarValue));
+        var WeeklyRequestBarLabel = @Html.Raw(Json.Serialize(ViewBag.WeeklyRequestBarLabel));
+        var WeeklyRequestBarValue = @Html.Raw(Json.Serialize(ViewBag.WeeklyRequestBarValue));
+        var MonthlyRequestBarLabel = @Html.Raw(Json.Serialize(ViewBag.MonthlyRequestBarLabel));
+        var MonthlyRequestBarValue = @Html.Raw(Json.Serialize(ViewBag.MonthlyRequestBarValue));
+        var YearlyRequestBarLabel = @Html.Raw(Json.Serialize(ViewBag.YearlyRequestBarLabel));
+        var YearlyRequestBarValue = @Html.Raw(Json.Serialize(ViewBag.YearlyRequestBarValue));
+
+
+        function initializeRequestsChart() {
+            var requestsChartCanvas = document.getElementById('requests-chart').getContext('2d');
+            var requestlabels = CustomRequestBarLabel;
+            var requestvalues = CustomRequestBarValue;
+            // var requestlabels = TodayRequestBarLabel;
+            // var requestvalues = TodayRequestBarValue;
+
+
+            window.requestsChart = new Chart(requestsChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: requestlabels,
+                    datasets: [{
+                        label: 'Requests',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        data: requestvalues
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function requestsTimeFrame(button) {
+            document.querySelectorAll('.card-tools button').forEach(btn => {
+                btn.classList.remove('activeRequestsBtn');
+            });
+
+            button.classList.add('activeRequestsBtn');
+
+            var requestlabels = [], requestvalues = [];
+
+            switch (button.value) {
+                case 'custom':
+                    requestlabels = CustomRequestBarLabel;
+                    requestvalues = CustomRequestBarValue;
+                    break;
+                case 'today':
+                    requestlabels = TodayRequestBarLabel;
+                    requestvalues = TodayRequestBarValue;
+                    break;
+                case 'weekly':
+                    requestlabels = WeeklyRequestBarLabel;
+                    requestvalues = WeeklyRequestBarValue;
+                    break;
+                case 'monthly':
+                    requestlabels = MonthlyRequestBarLabel;
+                    requestvalues = MonthlyRequestBarValue;
+                    break;
+                case 'yearly':
+                    requestlabels = YearlyRequestBarLabel;
+                    requestvalues = YearlyRequestBarValue;
+                    break;
+                default:
+                    break;
+            }
+
+            window.requestsChart.data.labels = requestlabels;
+            window.requestsChart.data.datasets[0].data = requestvalues;
+            window.requestsChart.update();
+        }
+
+
+
+        // Average Duration Chart
+        var CustomOrderDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.CustomOrderDurationBarValue));
+        var TodayOrderDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.TodayOrderDurationBarValue));
+        var WeeklyOrderDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.WeeklyOrderDurationBarValue));
+        var MonthlyOrderDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.MonthlyOrderDurationBarValue));
+        var YearlyOrderDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.YearlyOrderDurationBarValue));
+
+        var CustomRequestDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.CustomRequestDurationBarValue));
+        var TodayRequestDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.TodayRequestDurationBarValue));
+        var WeeklyRequestDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.WeeklyRequestDurationBarValue));
+        var MonthlyRequestDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.MonthlyRequestDurationBarValue));
+        var YearlyRequestDurationBarValue = @Html.Raw(Json.Serialize(ViewBag.YearlyRequestDurationBarValue));
+
+        var CustomDurationLabel = @Html.Raw(Json.Serialize(ViewBag.CustomDurationLabel));
+        var TodayDurationLabel = @Html.Raw(Json.Serialize(ViewBag.TodayDurationLabel));
+        var WeeklyDurationLabel = @Html.Raw(Json.Serialize(ViewBag.WeeklyDurationLabel));
+        var MonthlyDurationLabel = @Html.Raw(Json.Serialize(ViewBag.MonthlyDurationLabel));
+        var YearlyDurationLabel = @Html.Raw(Json.Serialize(ViewBag.YearlyDurationLabel));
+
+        function initializeDurationChart() {
+            var durationChartCanvas = document.getElementById('duration-chart').getContext('2d');
+            var durationlabels = CustomDurationLabel;
+            var orderDurationvalues = CustomOrderDurationBarValue;
+            var requestDurationvalues = CustomRequestDurationBarValue;
+
+            window.durationChart = new Chart(durationChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: durationlabels,
+                    datasets: [{
+                        label: 'Orders',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        data: orderDurationvalues
+                    },
+                    {
+                        label: 'Requests',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        data: requestDurationvalues
+                    }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function durationTimeFrame(button) {
+            document.querySelectorAll('.card-tools button').forEach(btn => {
+                btn.classList.remove('activeDurationBtn');
+            });
+
+            button.classList.add('activeDurationBtn');
+
+
+            var durationlabels = [], orderDurationvalues = [], requestDurationvalues = [];
+
+            switch (button.value) {
+                case 'custom':
+                    durationlabels = CustomDurationLabel;
+                    orderDurationvalues = CustomOrderDurationBarValue;
+                    requestDurationvalues = CustomRequestDurationBarValue;
+                    break;
+                case 'today':
+                    durationlabels = TodayDurationLabel;
+                    orderDurationvalues = TodayOrderDurationBarValue;
+                    requestDurationvalues = TodayRequestDurationBarValue;
+                    break;
+                case 'weekly':
+                    durationlabels = WeeklyDurationLabel;
+                    orderDurationvalues = WeeklyOrderDurationBarValue;
+                    requestDurationvalues = WeeklyRequestDurationBarValue;
+                    break;
+                case 'monthly':
+                    durationlabels = MonthlyDurationLabel;
+                    orderDurationvalues = MonthlyOrderDurationBarValue;
+                    requestDurationvalues = MonthlyRequestDurationBarValue;
+                    break;
+                case 'yearly':
+                    durationlabels = YearlyDurationLabel;
+                    orderDurationvalues = YearlyOrderDurationBarValue;
+                    requestDurationvalues = YearlyRequestDurationBarValue;
+                    break;
+                default:
+                    break;
+            }
+
+            window.durationChart.data.labels = durationlabels;
+            window.durationChart.data.datasets[0].data = orderDurationvalues;
+            window.durationChart.data.datasets[1].data = requestDurationvalues; 
+            window.durationChart.update();
+
+        }
+
+        window.onload = function () {
+            initializeOrdersChart();
+            initializeRequestsChart();
+            initializeDurationChart();
+        };
+
+
+        </script>
+}
+

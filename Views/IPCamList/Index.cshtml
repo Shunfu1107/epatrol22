@@ -1,0 +1,73 @@
+﻿@{
+	ViewBag.Title = "Camera List View";
+	@model List<dynamic>
+
+}
+@{
+	@* @model List<dynamic> *@
+}
+
+@section Styles {
+	<link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+	<script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+	@* <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> *@
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	@* <link rel="stylesheet" type="text/css" href="~/Assets/Assets/Templates/App/app.css"> *@
+
+	<!--Font Style-->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<!--CSS Style-->
+	<link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+	<!-- Main View -->
+	<div class="container-fluid"
+		 style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;">
+		<div style="justify-content: space-between; align-items: center;">
+			<h3 style="margin: 0;">Camera List View</h3>
+		</div>
+		<hr />
+
+		<p>Cam View</p>
+
+		</br>
+
+		<video id="ipcam1" controls autoplay></video>
+		<video id="ipcam2" controls autoplay></video>
+
+		<br />
+
+	</div>
+
+	<br />
+
+	<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+	<script>
+		if (Hls.isSupported()) {
+			let video = document.getElementById('ipcam1');
+			let hls = new Hls();
+			hls.loadSource("http://192.168.0.2:8083/stream/2d3bf244-9d07-401a-bd61-91beb34cdcb6/channel/0/hlsll/live/index.m3u8");
+			hls.attachMedia(video);
+		}
+
+		if (Hls.isSupported()) {
+			let video = document.getElementById('ipcam2');
+			let hls = new Hls();
+					hls.loadSource("http://192.168.0.2:8083/stream/5cc194c8-812a-4dc7-9f98-1750ad366353/channel/0/hlsll/live/index.m3u8");
+			hls.attachMedia(video);
+		}
+	</script>
+</body>
+</html>

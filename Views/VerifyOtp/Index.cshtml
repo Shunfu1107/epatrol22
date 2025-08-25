@@ -1,0 +1,230 @@
+﻿@{
+    ViewData["Title"] = "Verify OTP";
+}
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #D2D6DE;
+        }
+
+        .logo-container {
+            position: absolute;
+            top: 80px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .login-logo img {
+            width: 140px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            background-color: #3c8dbc;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary:hover {
+            background-color: #3782b9;
+        }
+
+        .btn-disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-disabled:hover {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .alert-warning {
+            top: 20px;
+            padding: 10px;
+            color: white;
+            background-color: #dc3545;
+            border-radius: 4px;
+            text-align: center;
+            position: absolute;
+        }
+
+        .alert-success {
+            top: 20px;
+            padding: 10px;
+            color: white;
+            background-color: green;
+            border-radius: 4px;
+            text-align: center;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <div class="login-logo">
+            <img src="~/Assets/Image/BS LoginPage Logo.png" alt="Logo" />
+        </div>
+    </div>
+
+    <div class="form-container">
+        <p >Please enter OTP sent</p>
+
+        <form id="VerifyOtpForm" action="@Url.Action("CheckOtp", "VerifyOtp")" method="post">
+            <div class="form-group">
+                <input type="text" id="Otp" name="Otp" class="form-control" maxlength="6" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-flat">Verify</button>
+        </form>
+
+        <!-- Resend OTP Button -->
+        <form action="@Url.Action("ResendOtp", "VerifyOtp")" method="post">
+            <button id="resendOtpButton" type="submit" class="btn btn-primary btn-block btn-flat btn-disabled">Resend OTP</button>
+            <div id="timer"></div>
+        </form>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert-warning">
+            @TempData["Message"]
+        </div>
+    }
+    @if(TempData["Message-Success"] != null)
+    {
+        <div class="alert-success">
+            @TempData["Message-Success"]
+        </div>
+    }
+
+    <script>
+        var countdownTime = 60; // 1-minute timer
+        var resendButton = document.getElementById("resendOtpButton");
+        var timerDisplay = document.getElementById("timer");
+        var timerInterval; // To store the interval ID
+
+        // Function to update the timer display
+        function updateTimer() {
+            var storedExpirationTime = localStorage.getItem("otpExpirationTime");
+            if (storedExpirationTime) {
+                var expirationTime = new Date(storedExpirationTime);
+                var currentTime = new Date();
+                var timeLeft = Math.floor((expirationTime - currentTime) / 1000);
+
+                if (timeLeft > 0) {
+                    // Update the timer display with the remaining time
+                    timerDisplay.innerHTML = "You can resend OTP in " + timeLeft + " seconds.";
+                    resendButton.disabled = true;
+                    resendButton.classList.add("btn-disabled");
+                    resendButton.classList.remove("btn-primary");
+                } else {
+                    // Timer expired, enable the resend button
+                    timerDisplay.innerHTML = "You can now resend OTP.";
+                    resendButton.disabled = false;
+                    resendButton.classList.remove("btn-disabled");
+                    resendButton.classList.add("btn-primary");
+                    clearInterval(timerInterval); // Stop the interval
+                }
+            } else {
+                // If no timer is stored, assume button is clickable
+                timerDisplay.innerHTML = "You can now resend OTP.";
+                resendButton.disabled = false;
+                resendButton.classList.remove("btn-disabled");
+                resendButton.classList.add("btn-primary");
+            }
+        }
+
+        // Function to start or reset the timer
+        function startTimer() {
+            var expirationTime = new Date();
+            expirationTime.setSeconds(expirationTime.getSeconds() + countdownTime); // Set expiration time
+            localStorage.setItem("otpExpirationTime", expirationTime); // Save expiration time in localStorage
+
+            updateTimer(); // Initial call to update the timer
+            clearInterval(timerInterval); // Clear any existing interval
+            timerInterval = setInterval(updateTimer, 1000); // Update every second
+        }
+
+        // Add an event listener to the Resend OTP button
+        resendButton.addEventListener("click", function (event) {
+            event.preventDefault(); // Prevent the form from submitting immediately
+
+            // Trigger an AJAX request or form submission here to resend the OTP
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "@Url.Action("ResendOtp", "VerifyOtp")", true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    // OTP resent successfully, start the timer again
+                    startTimer();
+                } else {
+                    // Handle error
+                    timerDisplay.innerHTML = "Failed to resend OTP. Please try again.";
+                }
+            };
+            xhr.send(); // Send the request
+        });
+
+        // Check if there's an existing timer in localStorage
+        var storedExpirationTime = localStorage.getItem("otpExpirationTime");
+        if (storedExpirationTime) {
+            var expirationTime = new Date(storedExpirationTime);
+            var currentTime = new Date();
+            if (currentTime < expirationTime) {
+                // Continue the countdown if time is left
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000); // Start the interval
+            } else {
+                // Enable the button if time has expired
+                timerDisplay.innerHTML = "You can now resend OTP.";
+                resendButton.disabled = false;
+                resendButton.classList.remove("btn-disabled");
+                resendButton.classList.add("btn-primary");
+            }
+        } else {
+            startTimer(); // Start a new timer if none exists
+        }
+    </script>
+</body>
+</html>

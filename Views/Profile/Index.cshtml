@@ -1,0 +1,180 @@
+﻿@model AdminPortalV8.Libraries.ExtendedUserIdentity.Models.ViewModels.ProfileViewModel
+
+@{
+    ViewBag.Title = "Profile";
+    ViewBag.SubTitle = "Update profile";
+}
+
+
+@section Scripts {
+
+    @Html.Raw(TempData["Message"])
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            var comments = document.getElementsByName('Password');
+            var numComments = comments.length;
+            for (var i = 0; i < numComments; i++) {
+                var text = "To make your password more secure<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+
+                comments[i].setAttribute('data-content', text);
+                comments[i].setAttribute('data-toggle', 'popover');
+                comments[i].setAttribute('data-placement', 'right');
+                comments[i].addEventListener('focus', myFunction, false);
+                comments[i].addEventListener('keyup', textChange, false);
+                document.getElementsByName('ConfirmPassword')[0].addEventListener('focus', myFunction2, false);
+
+            }
+
+
+        });
+
+        function myFunction() {
+            $('[data-toggle="popover"]').popover({ html: true, placement: "bottom" });
+
+        }
+
+
+        function myFunction2() {
+            $('[data-toggle="popover"]').popover('hide');
+
+        }
+
+        function textChange() {
+            var text = "";
+            var a = 0, b = 0, c = 0, d = 0, e = 0;
+            var textVal = document.getElementsByName("Password")[0].value;
+            text = "To make your password more secure<br>";
+            if (textVal.match(/[a-z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one lowercase <br>";
+                if (b == 0) {
+                    a = a + 1;
+                    b = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+            }
+
+            if (textVal.match(/[A-Z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one uppercase <br>";
+
+                if (c == 0) {
+                    a = a + 1;
+                    c = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+            }
+
+            if (/\d/.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one number <br>";
+                if (d == 0) {
+                    a = a + 1;
+                    d = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+            }
+
+            var format = /[ !@@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+            if (format.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                if (e == 0) {
+                    a = a + 1;
+                    e = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+            }
+
+            if (textVal.length >= 8) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password length at least 8 characters <br>";
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+            }
+
+            if (a >= 3 && textVal.length >= 8) {
+                text = "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password is secure<br>";
+            }
+
+            document.getElementsByName('Password')[0].setAttribute('data-content', text);
+            $('[data-toggle="popover"]').popover('show');
+        }
+
+    </script>
+   
+}
+
+
+<div id="users-view-edit" class="mel-section">
+    <div class="box box-info">
+        @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-user", action = "#" }))
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="box-body">
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Name, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.TextBoxFor(m => m.Name, new { @readonly = "readonly", id = "txt-edit-name", @class = "form-control" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.Name)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Email, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.TextBoxFor(m => m.Email, new { @readonly = "readonly", id = "txt-edit-email", @class = "form-control" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.Email)</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.UserName, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.TextBoxFor(m => m.UserName, new { @readonly = "readonly", id = "txt-edit-username", @class = "form-control" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.UserName)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.OldPassword, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.PasswordFor(m => m.OldPassword, new { id = "txt-edit-password-old", @class = "form-control password" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.OldPassword)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Password, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.PasswordFor(m => m.Password, new { id = "txt-edit-password-new", @class = "form-control password" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.Password)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.ConfirmPassword, new { @class = "col-md-2 control-label" })
+                    <div class="col-md-10">
+                        @Html.PasswordFor(m => m.ConfirmPassword, new { id = "txt-edit-password-confirm", @class = "form-control password" })
+                        <span class="error-block">@Html.ValidationMessageFor(m => m.ConfirmPassword)</span>
+                    </div>
+                </div>
+
+            </div>
+            @Html.HiddenFor(m=>m.UserID)
+            <div class="box-footer text-right">
+                <button type="submit" class="mel-section-trigger btn btn-primary" id="btn-change-password">Save Password</button>
+            </div>
+
+        }
+    </div>
+</div>

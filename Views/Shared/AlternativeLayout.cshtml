@@ -1,0 +1,52 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" href="~/Assets/Image/icon48.ico">
+    <title>@ViewBag.Title</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <!-- Bootstrap 3.3.7 -->
+    <link rel="stylesheet" href="~/Assets/Plugins/bootstrap/dist/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="~/Assets/Plugins/font-awesome/css/font-awesome.min.css">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="~/Assets/Plugins/Ionicons/css/ionicons.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="~/Assets/Templates/Custom/AdminLTE/dist/css/AdminLTE.min.css">
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="~/Assets/Plugins/html5shiv/html5shiv.min.js"></script>
+    <script src="~/Assets/Plugins/respond/respond.min.js"></script>
+    <![endif]-->
+    <!-- Google Font -->
+    <link rel="stylesheet" href="~/Assets/Plugins/google-fonts/source_sans_pro/font.css">
+
+    <link rel="stylesheet" href="~/Assets/Templates/App/app.css">
+
+    @RenderSection("Styles", required: false)
+</head>
+<body class="hold-transition login-page">
+    <div class="login-box">
+        @RenderBody()
+    </div>
+    <!-- /.login-box -->
+    <!-- jQuery 3 -->
+    <script src="~/Assets/Plugins/jquery/dist/jquery.min.js"></script>
+    <!-- Bootstrap 3.3.7 -->
+    <script src="~/Assets/Plugins/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <script src="~/Assets/Plugins/jquery-validation/dist/jquery.validate.min.js"></script>
+
+    <script src="~/Assets/Plugins/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script src="~/Assets/Templates/App/app.js"></script>
+
+    @RenderSection("Scripts", required: false)
+
+
+</body>
+</html>

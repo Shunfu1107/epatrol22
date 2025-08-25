@@ -1,0 +1,1049 @@
+﻿@using Newtonsoft.Json
+@{
+    ViewBag.Title = "Check Point";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+@{
+    var checkpoints = ViewBag.Checkpoints as List<AdminPortalV8.Models.Epatrol.CheckPoint>;
+    var checklists = ViewBag.Checklists as List<AdminPortalV8.Models.Epatrol.CheckList>;
+    var cameras = ViewBag.Cameras as List<AdminPortalV8.Models.Epatrol.Camera>;
+    var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+}
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css"> *@
+}
+@section scripts {
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#checkpoints-table').DataTable({
+                responsive: true
+            });
+
+            // Generate level options
+            function getLevelOptions() {
+                return `
+                @if (locations != null && locations.Any())
+                {
+                    <text><option value="" selected disabled hidden>Choose Here</option></text>
+                    @foreach (var location in locations)
+                    {
+                        <text><option value="@location.Name">@location.Level</option></text>
+                    }
+                }
+                else
+                {
+                    <option disabled>No locations available</option>
+                }
+                `;
+            }
+
+            // Generate camera options
+            function getCameraOptions() {
+                return `
+                @if (cameras != null && cameras.Any())
+                {
+                    <text><option value="" selected disabled hidden>Choose Here</option></text>
+                    @foreach (var camera in cameras)
+                    {
+                        <text><option value="@camera.CameraId">@camera.Name</option></text>
+                    }
+                }
+                else
+                {
+                    <option disabled>No cameras available</option>
+                }
+                `;
+            }
+
+            // Generate checklist options
+            function getChecklistOptions() {
+                return `
+                <option value="" selected disabled hidden>Choose Here</option>
+                @if (checklists != null && checklists.Any())
+                {
+                    @foreach (var checklist in checklists)
+                    {
+                        <option value="@checklist.CheckListId" data-type="@checklist.Type">
+                            @checklist.CheckListName - (@checklist.Type)
+                        </option>
+                    }
+                }
+                else
+                {
+                    <option disabled>No checklists available</option>
+                }
+                `;
+            }
+
+            $(document).on('click', '#add-camera', function () {
+                var newDiv = $('<div>', {
+                    class: 'rows'
+                }).css({
+                    'display': 'flex',
+                    'margin-top': '10px'
+                });
+
+                var newCamera = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtCamera[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '91%'
+                    }
+                }).html(getCameraOptions());
+
+                var addButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'add-camera',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 8px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-camera',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newCamera).append(addButton).append(deleteButton);
+                $('#camera-col').append(newDiv);
+            });
+
+            $(document).on('click', '#add-checklist', function () {
+                var selectedType = $('#typeSelect').val(); 
+
+                var optionsHtml = getChecklistOptions();
+
+                var newChecklist = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtChecklist[]'
+                }).css({
+                    'border-radius': '5px',
+                    'padding-left': '10px',
+                    'padding-right': '10px',
+                    'width': '91%'
+                });
+
+                newChecklist.html(optionsHtml);
+
+                newChecklist.find('option').each(function () {
+                    var optionType = $(this).data('type');
+                    if (optionType && optionType !== selectedType) {
+                        $(this).remove();
+                    }
+                });
+
+                var newDiv = $('<div>', {
+                    class: 'rows'
+                }).css({
+                    'display': 'flex',
+                    'margin-top': '10px'
+                });
+
+                var addButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'add-checklist',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 8px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-checklist',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newChecklist).append(addButton).append(deleteButton);
+                $('#checklist-container').append(newDiv);
+            });
+
+            // Add this function to handle camera updates
+            function updateCameraOptions(block, level) {
+                $.ajax({
+                    url: '/Checkpoints/GetCamerasByLocation',
+                    data: { block: block, level: level },
+                    success: function(data) {
+                        const cameraSelects = document.querySelectorAll('select[name="txtCamera[]"]');
+                        const cameraHtml = `
+                            <option value="" selected disabled hidden>Choose Here</option>
+                            ${data.cameras.map(camera => `
+                                <option value="${camera.cameraId}">${camera.name}</option>
+                            `).join('')}
+                        `;
+
+                        cameraSelects.forEach(select => {
+                            const currentValue = select.value;
+                            select.innerHTML = cameraHtml;
+                            if (data.cameras.some(c => c.cameraId.toString() === currentValue)) {
+                                select.value = currentValue;
+                            }
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error fetching cameras:", error);
+                        console.log("Response:", xhr.responseText); // Add this for debugging
+                    }
+                });
+            }
+
+            // Modify the existing block and level change handlers
+            $('#blockSelect').on('change', function() {
+                const selectedBlock = this.value;
+                const levelSelect = document.getElementById('levelSelect');
+
+                levelSelect.innerHTML = '<option value="" selected disabled hidden>Choose Here</option>';
+
+                if (levels[selectedBlock]) {
+                    levels[selectedBlock].forEach(level => {
+                        const option = document.createElement('option');
+                        option.value = level.LocationId;
+                        option.textContent = level.Level;
+                        levelSelect.appendChild(option);
+                    });
+                }
+
+                // Clear camera selections when block changes
+                updateCameraOptions(selectedBlock, '');
+            });
+
+            $('#levelSelect').on('change', function() {
+                const selectedBlock = $('#blockSelect').val();
+                const selectedLevel = $(this).find('option:selected').text();
+
+                updateCameraOptions(selectedBlock, selectedLevel);
+            });
+
+            // Function to update level options based on the selected block
+            function updateLevelOptions(selectedBlock) {
+                $('select[name="txtEditLevel"]').each(function () {
+                    var $this = $(this);
+                    var currentValue = $this.val();
+                    var optionsHtml = getLevelOptions();
+
+                    $this.html(optionsHtml);
+
+                    $this.find('option').each(function () {
+                        var optionBlock = $(this).data('block');
+                        if (optionBlock && optionBlock !== selectedBlock) {
+                            $(this).remove();
+                        }
+                    });
+
+                    $this.val(currentValue);
+                });
+            }
+
+            $('#blockSelected').on('change', function () {
+                var selectedBlock = $(this).val();
+                updateLevelOptions(selectedBlock);
+            });
+
+            // Function to update checklist options based on the selected type
+            function updateChecklistOptions(selectedType) {
+                $('select[name="txtEditChecklist[]"]').each(function () {
+                    var $this = $(this);
+                    var currentValue = $this.val();
+                    var optionsHtml = getChecklistOptions();
+
+                    $this.html(optionsHtml);
+
+                    $this.find('option').each(function () {
+                        var optionType = $(this).data('type');
+                        if (optionType && optionType !== selectedType) {
+                            $(this).remove();
+                        }
+                    });
+
+                    $this.val(currentValue);
+                });
+            }
+
+            $('#typeSelected').on('change', function () {
+                var selectedType = $(this).val();
+                updateChecklistOptions(selectedType);
+            });
+
+            
+
+            // Function to update camera options based on the selected level
+            function updateEditCameraOptions(block, level) {
+                $.ajax({
+                    url: '/Checkpoints/GetCamerasByLocation',
+                    data: { block: block, level: level },
+                    success: function(data) {
+                        const cameraSelects = $('#camera-inputs select[name="txtEditCamera[]"]');
+                        const cameraHtml = `
+                            <option value="" selected disabled hidden>Choose Here</option>
+                            ${data.cameras.map(camera => `
+                                <option value="${camera.cameraId}">${camera.name}</option>
+                            `).join('')}
+                        `;
+
+                        cameraSelects.each(function() {
+                            const currentValue = $(this).val();
+                            $(this).html(cameraHtml);
+                            if (data.cameras.some(c => c.cameraId.toString() === currentValue)) {
+                                $(this).val(currentValue);
+                            }
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error fetching cameras:", error);
+                        console.log("Response:", xhr.responseText); // Add this for debugging
+                    }
+                });
+            }
+
+            // Handle block change in edit modal
+            $('#editBlockSelect').on('change', function() {
+                const selectedBlock = $(this).val();
+                updateEditLevelOptions(selectedBlock);
+                updateEditCameraOptions(selectedBlock, '');
+            });
+
+            // Handle level change in edit modal
+            $('#editLevelSelect').on('change', function() {
+                const selectedBlock = $('#editBlockSelect').val();
+                const selectedLevel = $(this).find('option:selected').text();
+                updateEditCameraOptions(selectedBlock, selectedLevel);
+            });
+
+            $(document).on('click', '#edit-camera', function () {
+                var newDiv = $('<div>', {
+                    class: 'rows',
+                    style: 'display: flex; margin-top: 10px'
+                });
+
+                var newEditCamera = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtEditCamera[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '84%'
+                    }
+                }).html(getCameraOptions());
+
+                var editButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'edit-camera',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 8px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id:    'delete-camera',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newEditCamera).append(editButton).append(deleteButton);
+                $('#edit-camera-col').append(newDiv);
+            });
+
+            $(document).on('click', '#edit-checklist', function () {
+                var selectedType = $('#typeSelected').val();
+
+                var optionsHtml = getChecklistOptions();
+
+                var newEditChecklist = $('<select>', {
+                    class: 'form-control',
+                    name: 'txtEditChecklist[]',
+                    css: {
+                        'border-radius': '5px',
+                        'padding-left': '10px',
+                        'padding-right': '10px',
+                        'width': '92%'
+                    }
+                });
+
+                newEditChecklist.html(optionsHtml);
+
+                newEditChecklist.find('option').each(function () {
+                    var optionType = $(this).data('type');
+                    if (optionType && optionType !== selectedType) {
+                        $(this).remove();
+                    }
+                });
+
+                var newDiv = $('<div>', {
+                    class: 'rows',
+                    style: 'display: flex; margin-top: 10px'
+                });
+
+                var editButton = $('<i>', {
+                    class: 'fas fa-plus',
+                    id: 'edit-checklist',
+                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 8px;'
+                });
+
+                var deleteButton = $('<i>', {
+                    class: 'fas fa-trash',
+                    id: 'delete-checklist',
+                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
+                });
+
+                newDiv.append(newEditChecklist).append(editButton).append(deleteButton);
+                $('#edit-checklist-container').append(newDiv);
+            });
+
+            $(document).on('click', '#delete-camera', function () {
+                const $rowsParent = $(this).closest('.rows').parent();      // container that holds the .rows
+                const $rows = $rowsParent.children('.rows');
+                if ($rows.length > 1) {
+                    $(this).closest('.rows').remove();
+                } else {
+                    // keep one empty row; just clear selection
+                    const $sel = $(this).closest('.rows').find('select');
+                    // ensure placeholder exists and select it
+                    if ($sel.find('option[value=""]').length === 0) {
+                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
+                    }
+                    $sel.val('');
+                    // Optional: show a hint
+                    alert('At least one camera is required.');
+                }
+            });
+
+            $(document).on('click', '#delete-checklist', function () {
+                const $rowsParent = $(this).closest('.rows').parent();      // container that holds the .rows
+                const $rows = $rowsParent.children('.rows');
+                if ($rows.length > 1) {
+                    $(this).closest('.rows').remove();
+                } else {
+                    // keep one empty row; just clear selection
+                    const $sel = $(this).closest('.rows').find('select');
+                    // ensure placeholder exists and select it
+                    if ($sel.find('option[value=""]').length === 0) {
+                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
+                    }
+                    $sel.val('');
+                    // Optional: show a hint
+                    alert('At least one checklist is required.');
+                }
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const typeSelect = document.getElementById("typeSelect");
+            const checklistSelect = document.getElementById("checklistSelect");
+
+            function filterChecklists() {
+                const selectedType = typeSelect.value;
+                const checklistOptions = checklistSelect.querySelectorAll("option");
+
+                checklistOptions.forEach(option => {
+                    const checklistType = option.getAttribute("data-type");
+                    if (checklistType === selectedType || option.value === "") {
+                        option.style.display = "";
+                    } else {
+                        option.style.display = "none";
+                    }
+                });
+
+                checklistSelect.selectedIndex = 0;
+            }
+
+            typeSelect.addEventListener("change", filterChecklists);
+
+            filterChecklists();
+        });
+
+        // Function to update level options based on the selected block
+        function updateEditLevelOptions(selectedBlock) {
+            $('#editLevelSelect').empty();
+            $('#editLevelSelect').append('<option value="" selected disabled hidden>Choose Here</option>');
+
+            if (levels[selectedBlock]) {
+                levels[selectedBlock].forEach(level => {
+                    $('#editLevelSelect').append(`<option value="${level.LocationId}">${level.Level}</option>`);
+                });
+            }
+        }
+
+        // Event listener to update levels based on selected block
+        const levels = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+            locations?.GroupBy(loc => loc.Name).ToDictionary(
+                g => g.Key,
+                g => g.Select(l => new { l.LocationId, l.Level }).ToList()
+            )
+        ));
+        
+        document.getElementById('blockSelect').addEventListener('change', function () {
+            const selectedBlock = this.value;
+            const levelSelect = document.getElementById('levelSelect');
+
+            levelSelect.innerHTML = '<option value="" selected disabled hidden>Choose Here</option>';
+
+            if (levels[selectedBlock]) {
+                levels[selectedBlock].forEach(level => {
+                    const option = document.createElement('option');
+                    option.value = level.LocationId;
+                    option.textContent = level.Level;
+                    levelSelect.appendChild(option);
+                });
+            }
+        });
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check List Page</title>
+    <!--JQuery for Modal Population -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Checkpoints</h3>
+            <div>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#add-checkpoints-module" id="btn-add-module">
+                    Add New Checkpoints
+                </button>
+            </div>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="checkpoints-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Name</th>
+                        <th>Block</th>
+                        <th>Level</th>
+                        <th>Checklists</th>
+                        <th>Cameras</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (checkpoints != null)
+                    {
+                        @for (int i = 0; i < checkpoints.Count; i++)
+                        {
+                            <tr>
+                                <td style="padding: 10px;">@(i + 1)</td>
+                                <td style="padding: 10px;">@checkpoints[i].CheckPointName</td>
+                                <td style="padding: 10px;">@checkpoints[i].Location?.Name</td>
+                                <td style="padding: 10px;">@checkpoints[i].Location?.Level</td>
+                                <td style="padding: 10px 25px;">
+                                    @if (checkpoints[i].CheckLists != null && checkpoints[i].CheckLists.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var checklist in checkpoints[i].CheckLists)
+                                            {
+                                                <li>@checklist.CheckListName</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No checklists available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px 25px;">
+                                    @if (checkpoints[i].Cameras != null && checkpoints[i].Cameras.Any())
+                                    {
+                                        <ul>
+                                            @foreach (var camera in checkpoints[i].Cameras)
+                                            {
+                                                <li>@camera.Name</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <span>No cameras available</span>
+                                    }
+                                </td>
+                                <td style="padding: 10px;">
+                                    <button type="button" class="btn btn-warning" style="padding: 5px 15px;" data-toggle="modal" data-target="#editCheckpointModal"
+                                            data-id="@checkpoints[i].CheckPointId"
+                                            data-name="@checkpoints[i].CheckPointName"
+                                            data-location="@checkpoints[i].LocationId">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 15px;" data-toggle="modal" data-target="#deleteCheckpointModal"
+                                            data-id="@checkpoints[i].CheckPointId">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 10px;">No checkpoints available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add CheckPoint Modal -->
+    <div class="modal fade" id="add-checkpoints-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addCheckpointForm" action="@Url.Action("CreateNewCheckpoint", "Checkpoints")" method="post">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Checkpoints</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section" id="modules-routeroute">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="CheckpointName" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label>Type <span class="text-danger">*</span></label>
+                                        <div style="display: flex; align-items: center;">
+                                            <select id="typeSelect" class="form-control" name="type" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required>
+                                                <option value="Manual">Manual</option>
+                                                <option value="Auto">Auto</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6" style="margin-top: 15px;">
+                                        <label>Block <span class="text-danger">*</span></label>
+                                        <select id="blockSelect" class="form-control" name="block" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required>
+                                            <option value="" selected disabled hidden>Choose Here</option>
+                                            @if (locations != null && locations.Any())
+                                            {
+                                                var groupedLocations = locations.GroupBy(loc => loc.Name);
+                                                foreach (var group in groupedLocations)
+                                                {
+                                                    <option value="@group.Key">@group.Key</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option disabled>No locations available</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6" style="margin-top: 15px;">
+                                        <label>Level <span class="text-danger">*</span></label>
+                                        <div style="display: flex; align-items: center;">
+                                            <select id="levelSelect" class="form-control" name="txtlevel" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required>
+                                                <option value="" selected disabled hidden>Choose Here</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row" id="camera-container">
+                                    <div class="col-md-6" id="camera-col" style="margin-top: 15px;">
+                                        <label>Camera <span class="text-danger">*</span></label>
+                                        <div class="rows" style="display: flex; align-items: center;">
+                                            <select class="form-control" name="txtCamera[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 100%;" required>
+                                                <option value="" selected disabled hidden>Choose Here</option>
+                                                @if (cameras != null && cameras.Any())
+                                                {
+                                                    foreach (var camera in cameras)
+                                                    {
+                                                        <option value="@camera.CameraId">@camera.Name</option>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <option disabled>No cameras available</option>
+                                                }
+                                            </select>
+                                            <i class="fas fa-plus" id="add-camera" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                            <i class="fas fa-trash" id="delete-camera" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6" style="margin-top: 15px;" id="checklist-container">
+                                        <label>Checklist <span class="text-danger">*</span></label>
+                                        <div class="rows" style="display: flex; align-items: center;">
+                                            <select id="checklistSelect" class="form-control" name="txtChecklist[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;" required>
+                                                <option value="" selected disabled hidden>Choose Here</option>
+                                                @if (checklists != null && checklists.Any())
+                                                {
+                                                    foreach (var checklist in checklists)
+                                                    {
+                                                        <option data-type="@checklist.Type" value="@checklist.CheckListId">@checklist.CheckListName - (@checklist.Type)</option>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <option disabled>No checklists available</option>
+                                                }
+                                            </select>
+                                            <i class="fas fa-plus" id="add-checklist" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                            <i class="fas fa-trash" id="delete-checklist" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="submit" class="btn btn-primary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit CheckPoint Modal -->
+    <div class="modal fade" id="editCheckpointModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editCheckpointForm" action="@Url.Action("EditCheckpoint", "Checkpoints")" method="post">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Checkpoints</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section" id="modules-routeroute">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <input type="hidden" name="CheckpointId" id="editCheckpointId" />
+                                        <input type="hidden" name="LocationId" id="editLocationId" />
+                                        <label>Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="CheckpointName" id="editCheckpointName" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; margin-top:10px; width: 82%;" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label>Type <span class="text-danger">*</span></label>
+                                        <div style="display: flex; align-items: center;">
+                                            <select id="typeSelected" class="form-control" name="type" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; margin-top: 10px; width: 82%;" required>
+                                                <option value="Manual">Manual</option>
+                                                <option value="Auto">Auto</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6" id="edit-block-col" style="margin-top: 15px;">
+                                        <label>Block <span class="text-danger">*</span></label>
+                                        <select id="editBlockSelect" class="form-control" name="block" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required>
+                                            <option value="" selected disabled hidden>Choose Here</option>
+                                            @if (locations != null && locations.Any())
+                                            {
+                                                var groupedLocations = locations.GroupBy(loc => loc.Name);
+                                                foreach (var group in groupedLocations)
+                                                {
+                                                    <option value="@group.Key">@group.Key</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option disabled>No locations available</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6" id="edit-level-col" style="margin-top: 15px;">
+                                        <label>Level <span class="text-danger">*</span></label>
+                                        <select id="editLevelSelect" class="form-control" name="txtEditLevel" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%;" required>
+                                            <option value="" selected disabled hidden>Choose Here</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row" id="camera-container">
+                                    <div class="col-md-6" id="edit-camera-col" style="margin-top: 15px;">
+                                        <label>Camera <span class="text-danger">*</span></label>
+                                        <div id="camera-inputs">
+                                            <!-- Camera rows will be dynamically inserted here via JavaScript -->
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6" id="edit-checklist-container" style="margin-top: 15px;">
+                                        <label>Checklist <span class="text-danger">*</span></label>
+                                        <div id="checklist-inputs">
+                                            <!-- Checklist rows will be dynamically inserted here via JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Checklist Modal -->
+    <div class="modal fade" id="deleteCheckpointModal" tabindex="-1" role="dialog" aria-labelledby="deleteCheckpointModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCheckpointModalLabel">Delete Checkpoint</h5>
+                </div>
+                <form id="deleteCheckpointForm" action="@Url.Action("DeleteCheckPoint", "Checkpoints")" method="post">
+                    <input type="hidden" id="deleteCheckpointId" name="CheckpointId" />
+                    <input type="hidden" id="forceDelete" name="forceDelete" value="false" />
+                    <div class="modal-body">
+                        <p id="deleteConfirmationText">Are you sure you want to delete this Checkpoint?</p>
+                        <div id="routeWarning" class="alert alert-warning" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelButton">Cancel</button>
+                        <button type="submit" class="btn btn-danger" id="deleteButton">Delete</button>
+                        <button type="button" class="btn btn-danger" id="forceDeleteButton" style="display: none;">Force Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        $(document).ready(function() {
+            // Handle the Delete Modal population and submission
+            $('#deleteCheckpointModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var checkpointId = button.data('id');
+                var modal = $(this);
+
+                // Reset modal state
+                modal.find('#deleteCheckpointId').val(checkpointId);
+                modal.find('#forceDelete').val('false');
+                modal.find('#deleteConfirmationText').show();
+                modal.find('#routeWarning').hide().empty();
+                modal.find('#deleteButton').show();
+                modal.find('#forceDeleteButton').hide();
+
+                // Initial check for route associations
+                checkRouteAssociations(checkpointId);
+            });
+
+            $('#deleteCheckpointForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var checkpointId = $('#deleteCheckpointId').val();
+                var forceDelete = $('#forceDelete').val() === 'true';
+
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: {
+                        CheckpointId: checkpointId,
+                        forceDelete: forceDelete
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#deleteCheckpointModal').modal('hide');
+                            location.reload(); // Or update UI as needed
+                        } else if (response.routeNames) {
+                            // Show warning about associated routes
+                            $('#deleteConfirmationText').hide();
+                            $('#routeWarning').show().html(
+                                'This checkpoint is used by: ' + response.routeNames.join(', ') +
+                                '. Forcing deletion will remove it from these routes.'
+                            );
+                            $('#deleteButton').hide();
+                            $('#forceDeleteButton').show();
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('An error occurred while processing your request.');
+                    }
+                });
+            });
+
+            $('#forceDeleteButton').on('click', function() {
+                $('#forceDelete').val('true');
+                $('#deleteCheckpointForm').submit();
+            });
+
+            function checkRouteAssociations(checkpointId) {
+                $.ajax({
+                    url: '@Url.Action("DeleteCheckPoint", "Checkpoints")',
+                    type: 'POST',
+                    data: { CheckpointId: checkpointId, forceDelete: false },
+                    success: function(response) {
+                        if (response.routeNames && response.routeNames.length > 0) {
+                            $('#deleteConfirmationText').hide();
+                            $('#routeWarning').show().html(
+                                'This checkpoint is used by: ' + response.routeNames.join(', ') +
+                                '. Forcing deletion will remove it from these routes.'
+                            );
+                            $('#deleteButton').hide();
+                            $('#forceDeleteButton').show();
+                        }
+                    }
+                });
+            }
+        });
+
+        // Handle the Edit Modal population
+        $('#editCheckpointModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var checkpointId = button.data('id');
+            var checkpointName = button.data('name');
+            var locationId = button.data('location');
+
+            var modal = $(this);
+                // Reset the form and clear dynamic fields
+        modal.find('#editCheckpointForm')[0].reset();
+        modal.find('#camera-inputs').empty();
+        modal.find('#checklist-inputs').empty();
+        modal.find('#editBlockSelect').val('');
+        modal.find('#editLevelSelect').html('<option value="" selected disabled hidden>Choose Here</option>');
+
+
+            modal.find('#editCheckpointId').val(checkpointId);
+            modal.find('#editCheckpointName').val(checkpointName);
+            modal.find('#editLocationId').val(locationId);
+
+            const levels = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                locations?.GroupBy(loc => loc.Name).ToDictionary(
+                g => g.Key,
+                g => g.Select(l => new { l.LocationId, l.Level }).ToList()
+                )
+                ));
+
+                // Fetch and populate location data
+            $.ajax({
+                url: '/Checkpoints/GetLocationLists',
+                data: { locationId: locationId },
+                success: function (data) {
+                    console.log("Received data:", data);
+                    if (data && Array.isArray(data.relatedBlocks) && data.relatedBlocks.length > 0) {
+                        console.log("Block and Level data:", data.relatedBlocks);
+                        // Set block and level based on original data
+                        var originalBlock = data.relatedBlocks[0].name;
+                        var originalLevelId = data.relatedBlocks[0].locationId;
+                        var originalLevel = data.relatedBlocks[0].level;
+
+                        modal.find('#editBlockSelect').val(originalBlock);
+                        updateEditLevelOptions(originalBlock); // Populate levels based on block
+                        modal.find('#editLevelSelect').val(originalLevelId); // Set original level
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching block and level data:", error);
+                    console.error("Response:", xhr.responseText);
+                }
+            });
+
+            // Fetch and populate camera data
+            $.ajax({
+                url: '/Checkpoints/GetCameraLists',
+                data: { checkPointId: checkpointId },
+                success: function (data) {
+                    if (data && Array.isArray(data.relatedCameras) && data.relatedCameras.length > 0) {
+                        data.relatedCameras.forEach(function (camera) {
+                            var cameraRow = `
+                                <div class="rows" style="display: flex; align-items: center;">
+                                    <select class="form-control" name="txtEditCamera[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%; margin-top:10px;" required>
+                                        <option value="${camera.cameraId}" selected>${camera.name}</option>
+                                        ${data.allCameras.map(c => `<option value="${c.cameraId}">${c.name}</option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-plus" id="edit-camera" style="margin-top:10px; margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                    <i class="fas fa-trash" id="delete-camera" style="margin-top:10px; margin-left: 8px; cursor: pointer; color: red;"></i>
+                                </div>
+                            `;
+                            modal.find('#camera-inputs').append(cameraRow);
+                        });
+                    } else {
+                        // Add an empty camera row if no cameras exist
+                        modal.find('#camera-inputs').append(getEmptyCameraRow(data.allCameras));
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching camera data:", error);
+                    console.error("Response:", xhr.responseText);
+                }
+            });
+
+            // Fetch and populate checklist data
+            $.ajax({
+                url: '/Checkpoints/GetCheckLists',
+                data: { checkPointId: checkpointId },
+                success: function (data) {
+                    if (data && Array.isArray(data.relatedCheckLists) && data.relatedCheckLists.length > 0) {
+                        var initialType = data.relatedCheckLists[0].type;
+                        modal.find('#typeSelected').val(initialType);
+
+                        data.relatedCheckLists.forEach(function (checkList) {
+                            var checklistRow = `
+                                <div class="rows" style="display: flex; align-items: center;">
+                                    <select class="form-control" name="txtEditChecklist[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 92%; margin-top: 10px;" required>
+                                        <option value="${checkList.checkListId}" selected>${checkList.checkListName} - (${checkList.type})</option>
+                                        ${data.allCheckLists.filter(cl => cl.type === initialType).map(cl => `<option value="${cl.checkListId}">${cl.checkListName} - (${cl.type})</option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-plus" id="edit-checklist" style="margin-top:10px; margin-left: 10px; cursor: pointer; color: #333;"></i>
+                                    <i class="fas fa-trash" id="delete-checklist" style="margin-top:10px; margin-left: 8px; cursor: pointer; color: red;"></i>
+                                </div>
+                            `;
+                            modal.find('#checklist-inputs').append(checklistRow);
+                        });
+                    } else {
+                        // Add an empty checklist row if no checklists exist
+                        modal.find('#checklist-inputs').append(getEmptyChecklistRow(data.allCheckLists, modal.find('#typeSelected').val()));
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching checklists:", error);
+                }
+            });
+        });
+                // Helper function to create an empty camera row
+        function getEmptyCameraRow(allCameras) {
+            return `
+                <div class="rows" style="display: flex; align-items: center;">
+                    <select class="form-control" name="txtEditCamera[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 82%; margin-top: 10px;" required>
+                        <option value="" disabled selected>Choose Here</option>
+                        ${allCameras.map(c => `<option value="${c.cameraId}">${c.name}</option>`).join('')}
+                    </select>
+                    <i class="fas fa-plus" id="edit-camera" style="margin-top:10px; margin-left: 10px; cursor: pointer; color: #333;"></i>
+                    <i class="fas fa-trash" id="delete-camera" style="margin-top:10px; margin-left: 8px; cursor: pointer; color: red;"></i>
+                </div>
+            `;
+        }
+
+        // Helper function to create an empty checklist row
+        function getEmptyChecklistRow(allChecklists, selectedType) {
+            var optionsHtml = allChecklists
+                .filter(cl => cl.type === selectedType)
+                .map(cl => `<option value="${cl.checkListId}">${cl.checkListName} - (${cl.type})</option>`)
+                .join('');
+            return `
+                <div class="rows" style="display: flex; align-items: center;">
+                    <select class="form-control" name="txtEditChecklist[]" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 92%; margin-top: 10px;" required>
+                        <option value="" disabled selected>Choose Here</option>
+                        ${optionsHtml}
+                    </select>
+                    <i class="fas fa-plus" id="edit-checklist" style="margin-top:10px; margin-left: 10px; cursor: pointer; color: #333;"></i>
+                    <i class="fas fa-trash" id="delete-checklist" style="margin-top:10px; margin-left: 8px; cursor: pointer; color: red;"></i>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,827 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100%;
+    /* display: flex; */
+    justify-content: center;
+    font-family: 'Roboto', sans-serif;
+    background-color: #adacac;
+}
+
+table {
+    width: 100% !important;
+    border-collapse: collapse;
+}
+
+h3 {
+    margin: 0;
+}
+
+.header_fixed {
+    max-height: 100vh;
+    width: 100%;
+    overflow: auto;
+    border: 1px solid #dddddd;
+}
+
+.header_fixed thead th {
+    position: sticky;
+    top: 0;
+    background-color: black;
+    color: #e6e7e8;
+    font-size: 15px;
+}
+
+.container-fluid {
+    width: 100%;
+    margin: auto;
+    border-radius: 10px;
+    background-color: white;
+    padding: 20px;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-primary {
+    padding: 8px 30px !important;
+    border: none;
+    margin-left: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.btn-start {
+    padding: 5px 15px !important;
+    width: 130px !important;
+    margin-right: 15px !important;
+    margin-left: 0px !important;
+}
+
+.btn-info {
+    padding: 5px 15px;
+    width: 130px;
+}
+
+.btn-warning {
+    padding: 5px 15px;
+    width: 130px;
+}
+
+.btn-danger {
+    padding: 5px 15px;
+    width: 130px;
+}
+
+#checkAllCamerasButton {
+    background-color: #dddddd;
+    color: black
+}
+
+#addCamera, #btn-add-module {
+    background-color: #333;
+    color: white;
+    padding: 8px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+th,
+td {
+    border-bottom: 1px solid #dddddd;
+    padding: 10px 20px;
+    font-size: 14px;
+    text-align: left;
+}
+
+td img {
+    height: 60px;
+    width: 60px;
+    border-radius: 100%;
+    border: 5px solid #e6e7e8;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+tr:nth-child(odd) {
+    background-color: #edeef1;
+}
+
+tr:hover td {
+    color: #44b478;
+    cursor: pointer;
+    background-color: #ffffff;
+}
+
+td button {
+    border: none;
+    padding: 7px 20px;
+    border-radius: 20px;
+    background-color: black;
+    color: #e6e7e8;
+}
+
+table-responsive::-webkit-scrollbar {
+    width: 6px;
+}
+
+table-responsive::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+table-responsive::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#loadingMessage {
+    font-size: 1.2em;
+    text-align: center;
+    margin-top: 10px;
+    color: #333;
+}
+
+.table thead tr {
+    background-color: lightgrey;
+}
+
+.styled-checkbox {
+    margin-right: 10px !important;
+}
+
+/* Ensure the search bar is aligned to the right */
+.dataTables_filter {
+    text-align: right; /* Aligns search box to the right */
+    margin-bottom: 10px; /* Add some spacing if needed */
+}
+
+.container {
+    max-width: 100%; /* Ensure the container doesn't exceed the frame */
+    overflow: hidden; /* Prevent content overflow */
+}
+
+.row {
+    margin-right: 0; /* Remove unnecessary margins */
+    margin-left: 0;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+    .input-group input, .input-group select {
+        flex: 1;
+        border-right: none;
+    }
+
+    .input-group .btn {
+        border-left: none;
+        border-radius: 0px;
+        background-color: white;
+        border: 16px;
+        outline-color: transparent;
+        outline-style: solid;
+        box-shadow: 0.6px 0px 0px 0.8px #D2D6DE;
+    }
+
+#applyFiltersButton {
+    margin-top: 10px; /* Add spacing above the button */
+}
+
+#cameraCheckResults {
+    padding: 20px;
+    border-radius: 2px;
+}
+
+    #cameraCheckResults table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+    #cameraCheckResults th, #cameraCheckResults td {
+        border: 0.5px solid black;
+        padding: 12px;
+        text-align: left;
+    }
+
+    #cameraCheckResults th {
+        background-color: lightblue;
+        font-weight: bold;
+    }
+
+.status-blurry {
+    color: orange;
+    font-weight: bold;
+}
+
+.status-not-working {
+    color: red;
+    font-weight: bold;
+}
+
+.status-working {
+    color: green;
+    font-weight: bold;
+}
+
+.status-dark {
+    color: orange;
+    font-weight: bold;
+}
+
+.status-unknown {
+    color: orange;
+    font-weight: bold;
+}
+
+.status-manual {
+    color: blue;
+    font-weight: bold;
+}
+
+.status-auto {
+    color: orangered;
+    font-weight: bold;
+}
+
+.container-fluid2 {
+    width: 100%;
+    margin: auto;
+    border-radius: 10px;
+    background-color: white;
+    padding: 20px;
+}
+
+.cam-row {
+    display: flex;
+    justify-content: center;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    width: 90%;
+    max-width: 1200px;
+}
+
+.camera-view {
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    aspect-ratio: 16 / 9;
+    border: 2px solid #555;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.form-control {
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background-color: white;
+}
+
+#link-header {
+    text-align: left;
+    padding: 10px;
+    display: none;
+}
+
+#videoModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-video-content {
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    height: auto;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.modal-video-header {
+    text-align: right;
+    width: 100%;
+}
+
+.close-modal-btn {
+    background: red;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.modal-video-body {
+    width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+camera-icon {
+    background-color: rgba(0, 128, 0, 0.8);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 0 3px black;
+}
+
+    .camera-icon:hover {
+        transform: scale(1.2);
+    }
+
+@media (min-width: 768px) {
+    .top-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+    }
+
+    .middle-bottom-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+    }
+
+    .left-column {
+        flex: 1 1 720px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 720px;
+        max-width: 720px;
+    }
+
+    .right-column {
+        width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 374px;
+        max-width: 374px;
+    }
+
+    .patrols-checks-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+    }
+
+    .events-trend-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+    }
+}
+
+/* Card base */
+.card {
+    background-color: #d3d3d3;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-sizing: border-box;
+}
+
+.card-white {
+    background-color: white;
+}
+
+/* Section headings */
+.section-heading {
+    font-weight: 600;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+    .section-heading .title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+.settings-button {
+    color: #4b5563;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+    .settings-button:hover {
+        color: #000000;
+    }
+
+/* Camera and AI icons */
+.icon-img {
+    width: 40px;
+    height: 30px;
+    object-fit: contain;
+}
+
+/* Camera Statistics and AI Models text */
+.stat-text {
+    font-size: 13px;
+}
+
+.stat-number {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* Camera stats boxes */
+.stats-boxes {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.stats-box {
+    background-color: white;
+    border-radius: 0.375rem;
+    flex: 1;
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+    .stats-box .number {
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+.green-text {
+    color: #16a34a;
+}
+
+.red-text {
+    color: #dc2626;
+}
+
+/* Visitor Statistics boxes */
+.visitor-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.visitor-box {
+    background-color: white;
+    border-radius: 0.375rem;
+    flex: 1 1 110px;
+    padding: 0.5rem;
+    font-weight: 600;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+    .visitor-box .label {
+        font-weight: 600;
+    }
+
+    .visitor-box .number-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        font-size: 20px;
+    }
+
+.visitor-orange {
+    color: #ea580c;
+}
+
+.visitor-blue {
+    color: #2563eb;
+}
+
+.visitor-green {
+    color: #16a34a;
+}
+
+.visitor-red {
+    color: #dc2626;
+}
+
+/* Daily Patrols boxes */
+.patrols {
+    display: flex;
+    gap: 1rem;
+}
+
+.patrol-box {
+    background-color: #f5f9c6;
+    border-radius: 0.375rem;
+    flex: 1;
+    padding: 0.75rem;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.patrol-small-text {
+    font-weight: 400;
+    font-size: 12px;
+    margin-top: 0.25rem;
+}
+
+/* Continuous Checks box */
+.continuous-checks-box {
+    background-color: white;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-weight: 600;
+    font-size: 13px;
+    max-width: 180px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+    .continuous-checks-box .small-text {
+        font-weight: 400;
+        font-size: 12px;
+        margin-top: 0.25rem;
+    }
+
+/* Events list */
+.events {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    font-size: 12px;
+    font-weight: 400;
+    box-sizing: border-box;
+    max-width: 480px;
+}
+
+.events-title {
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 0.5rem;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.event-date {
+    width: 1.5rem;
+    text-align: right;
+    font-weight: 700;
+}
+
+    .event-date.blue {
+        color: #2563eb;
+    }
+
+    .event-date.orange {
+        color: #ea580c;
+    }
+
+.event-desc {
+    border-bottom: 1px solid #d1d5db;
+    padding-bottom: 0.25rem;
+    flex: 1;
+    font-size: 11px;
+}
+
+    .event-desc span {
+        font-weight: 600;
+    }
+
+        .event-desc span.blue {
+            color: #2563eb;
+        }
+
+        .event-desc span.orange {
+            color: #ea580c;
+        }
+
+/* Visitor Trend image */
+.visitor-trend {
+    background-color: #d3d3d3;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+    .visitor-trend img {
+        border-radius: 0.375rem;
+        width: 100%;
+        height: 150px;
+        object-fit: contain;
+    }
+
+/* Table styles */
+.table-container {
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+}
+
+thead {
+    background-color: #1a2a5a;
+    color: white;
+}
+
+th, td {
+    border: 1px solid #d1d5db;
+    padding: 0.25rem 0.5rem;
+    text-align: left;
+}
+
+tbody tr.alert-row {
+    background-color: #ffd6db;
+}
+
+.alarm-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* Snapshot section */
+/*.snapshot {
+    background-color: #d3d3d3;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.snapshot-item {
+    position: relative;
+}
+
+    .snapshot-item img {
+        border-radius: 0.375rem;
+        width: 100%;
+        height: 110px;
+        object-fit: cover;
+    }
+
+.snapshot-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 10px;
+    padding: 0.125rem 0.25rem;
+    border-bottom-right-radius: 0.375rem;
+}*/
+
+/* View Cameras section */
+.view-cameras {
+    background-color: #d3d3d3;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.view-cameras-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.view-camera-button {
+    background-color: white;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+    border: none;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+}
+
+    .view-camera-button:hover,
+    .view-camera-button:focus {
+        box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+        outline: none;
+    }
+
+    .view-camera-button img {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+    }
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+    border-radius: 5px;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 5px;
+}
+
+.video-player {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    object-fit: contain;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}

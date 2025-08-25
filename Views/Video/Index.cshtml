@@ -1,0 +1,92 @@
+﻿@{
+	ViewBag.Title = "Video";
+}
+@{
+	var videos = ViewBag.Video as List<AdminPortalV8.Models.Epatrol.Video>;
+}
+
+@section Styles {
+	<link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+
+}
+@section scripts {
+	<script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+	<script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+	<script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+	<script>
+		$(document).ready(function () {
+			$('#dashboard-table').DataTable({
+				responsive: true
+			});
+		});
+
+
+	</script>
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Camera Page</title>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="~/Assets/Assets/Templates/App/app.css">
+
+	@* <style> *@
+	@*     table { *@
+	@*         width: 100%; *@
+	@*         border-collapse: collapse; *@
+	@*         margin: 20px 0; *@
+	@*     } *@
+
+	@*     table, th, td { *@
+	@*         border: 1px solid #ddd; *@
+	@*     } *@
+
+	@*     th, td { *@
+	@*         padding: 15px; *@
+	@*         text-align: center; *@
+	@*     } *@
+
+	@*     .video-record { *@
+	@*         max-width: 100%; *@
+	@*         height: auto; *@
+	@*     } *@
+	@* </style> *@
+</head>
+<body>
+	<!-- Main View -->
+	<div class="container-fluid" style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;">
+		<div style="max-height: 80vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px; padding: 10px;">
+			<p>Hello</p>
+			@*         <!-- 3x3 Table for Video Records --> *@            
+		 </div>
+	</div>
+
+	<table>
+		<tbody>
+			@if (videos != null)
+			{
+				@for (int i = 0; i < videos.Count; i++)
+				{
+					<tr>
+						<td style="padding: 10px;">
+							<video class="video-record" controls>
+								<source src="@Url.Action("StreamVideo", "Video", new { path = videos[i].VideoPath })" type="video/mp4">Your browser does not support the video tag.
+							</video>
+						</td>
+					</tr>
+				}
+			}
+			else
+			{
+				<tr>
+					<td colspan="4" style="text-align: center; padding: 10px;">No Videos Available</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</body>
+</html>
+

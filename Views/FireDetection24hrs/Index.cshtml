@@ -1,0 +1,959 @@
+﻿@{
+    ViewBag.Title = "Schedule Continuous Detection";
+}
+@{
+    var cameras = ViewBag.Cameras as List<AdminPortalV8.Models.Epatrol.Camera>;
+    var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+    var checklists = ViewBag.CheckLists as List<AdminPortalV8.Models.Epatrol.CheckList>;
+    var cameraChecklists = ViewBag.CameraCheckLists as List<AdminPortalV8.Models.Epatrol.Camera_CheckList>;
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap" rel="stylesheet">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    @* <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> *@
+
+    @* <!--Bootstrap 5 icons CDN--> *@
+    @* <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> *@
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+
+    <title>CRUD Operations</title>
+
+    <script src="~/js/script.js"></script>
+</head>
+<style>
+    .time-input-wrapper {
+        flex: 1; /* Allows both inputs to take equal space */
+        min-width: 0; /* Prevents overflow */
+    }
+
+        .time-input-wrapper label {
+            display: block;
+            font-size: 0.9em;
+        }
+
+        .time-input-wrapper input {
+            width: 100%;
+        }
+
+    /* Ensure the flex container keeps everything in one line */
+    .d-flex {
+        display: flex;
+        gap: 15px; /* Adds spacing between Start Time and End Time */
+    }
+
+    /* Optional: Adjust margins if needed */
+    .mr-3 {
+        margin-right: 15px;
+    }
+</style>
+<body>
+    @* Main View *@
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Schedule Continuous Detection</h3>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="camera-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Camera Name</th>
+                        <th>Image</th>
+                        <th>Camera URL</th>
+                        @* <th>Created At</th> *@
+                        <th>Connectivity </th>
+                        <th>Location </th>
+                        <th>Level </th>
+                        @* <th>IsAutoDetectFire</th> *@
+                        <th>Checklists</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    @section scripts {
+        <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+        <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+@*         <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script> *@
+
+        <script>
+            $(document).ready(function () {
+
+                bindDatatable();
+
+                $('#camera-table tbody').on('change', '.fire-detection-checkbox', function () {
+                    let checkbox = $(this);
+                    let cameraId = checkbox.data("camera-id");
+                    let isChecked = checkbox.is(":checked") ? 1 : 0;
+
+                    $.ajax({
+                        url: '/FireDetection24hrs/UpdateFireDetection',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: {
+                            'X-CSRF-TOKEN': $('input[name="__RequestVerificationToken"]').val() // Ensure CSRF protection
+                        },
+                        data: JSON.stringify({
+                            CameraId: cameraId,
+                            IsAutoDetectFire: isChecked
+                        }),
+                        success: function (response) {
+                            if (!response.success) {
+                                alert("Failed to update fire detection.");
+                                checkbox.prop("checked", !isChecked); // Revert checkbox on failure
+                            }
+                            location.reload();
+                        },
+                        error: function () {
+                            alert("An error occurred while updating fire detection.");
+                            checkbox.prop("checked", !isChecked); // Revert checkbox on error
+                        }
+                    });
+                });
+            });
+
+            function bindDatatable() {
+                $('#camera-table').DataTable({
+                    "processing": true,
+                    "serverSide": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": "/FireDetection24hrs/GetCameraData",
+                        "type": "GET",
+                        "data": function (d) {   // ✅ Take user input for searching
+                            d.search = d.search.value;
+                        },
+                        "dataSrc": "data"
+                    },
+                    "order": [],
+                    "columnDefs": [
+                        { "orderable": false, "targets": 0 }
+                    ],
+                    "language": {
+                        "emptyTable": "No record found.",
+                        "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i> Loading...'
+                    },
+                    "columns": [
+                        {
+                            "data": null,
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            },
+                            "orderable": false
+                        },
+                        {
+                            "data": "name",
+                            "autoWidth": true
+                        },
+                        {
+                            "data": "cameraImage",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                if (data) {
+                                    return `<div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; margin:auto;">
+                                                <img src="data:image/jpeg;base64,${data}" style="object-fit: contain; max-width: 100%; max-height: 100%;"/>
+                                            </div>`; // Centers the image in the box
+                                } else {
+                                    return '<span>No Image</span>';
+                                }
+                            }
+                        },
+                        {
+                            "data": "url",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                return `
+                                    <span>${data}</span>
+                                    <span onclick="copyToClipboard('${data}')" style="cursor: pointer; font-size: 1.5em; margin-left: 8px;">📋</span>
+                                `;
+                            }
+                        },
+                        // {
+                        //     "data": "createdAt",
+                        //     "autoWidth": true
+                        // },
+                        {
+                            "data": "isActive",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                return data
+                                    ? '<span style="color: green; font-weight: bold;">ON</span>'
+                                    : '<span style="color: red; font-weight: bold;">OFF</span>';
+                            }
+                        },
+                        {
+                            "data": "locationName",
+                            "autoWidth": true,
+                            "render": function(data) {
+                                return data || 'N/A';
+                            }
+                        },
+                        {
+                            "data": "locationLevel",
+                            "autoWidth": true,
+                            "render": function(data) {
+                                return data || 'N/A';
+                            }
+                        },
+                        // {
+                        //     "data": "isAutoDetectFire",
+                        //     "autoWidth": true,
+                        //     "render": function (data) {
+                        //         return data
+                        //             ? '<span style="color: green; font-weight: bold;">YES</span>'
+                        //             : '<span style="color: red; font-weight: bold;">NO</span>';
+                        //     }
+                        // },
+                        // {
+                        //     "data": "isAutoDetectFire",
+                        //     "autoWidth": true,
+                        //     "render": function (data, type, row) {
+                        //         let checked = data ? 'checked' : '';
+                        //         return `
+                        //             <input type="checkbox" class="fire-detection-checkbox"
+                        //                    data-camera-id="${row.cameraId}" ${checked} />
+                        //         `;
+                        //     }
+                        // }
+                        {
+                            "data": "checklists",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                if (!data || data.length === 0) {
+                                    return '<span style="color: red;">No Checklists</span>';
+                                }
+                                let listItems = data.map(item => {
+                                    let timeDisplay = item.startTime && item.endTime
+                                        ? `<br><span style="font-size: 0.9em; color: green;">${item.startTime} - ${item.endTime}</span>`
+                                        : '';
+                                    return `<li>${item.name}${timeDisplay}</li>`;
+                                }).join('');
+                                return `<ul style="padding-left: 15px; color: green;">${listItems}</ul>`;
+                            }
+                        },
+                        {
+                            "data": null,
+                            "autoWidth": true,
+                            "render": function (data, type, row) {
+                                return `
+                                    <button class="btn btn-primary btn-sm" onclick="openEditChecklistModal(${row.cameraId}, '${row.name}')">
+                                        Edit Checklist
+                                    </button>
+                                    <button class="btn btn-primary btn-warning btn-sm" onclick="deleteAllChecklists(${row.cameraId}, '${row.name}')">
+                                        Delete All
+                                    </button>
+                                `;
+                            }
+                        }
+                    ]
+                });
+            }
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast("Copied!", "green"))  // ✅ Green for success
+                    .catch(() => showToast("Failed to copy", "red")); // ❌ Red for failure
+            }
+
+            function showToast(message, bgColor) {
+                let toast = document.createElement("div");
+                Object.assign(toast.style, {
+                    position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)",
+                    background: bgColor, color: "white", padding: "10px 20px", borderRadius: "5px",
+                    fontSize: "14px", zIndex: "1000", opacity: "0.9", transition: "opacity 0.5s"
+                });
+                toast.innerText = message;
+                document.body.appendChild(toast);
+                setTimeout(() => (toast.style.opacity = "0"), 1000);
+                setTimeout(() => document.body.removeChild(toast), 1500);
+            }
+
+                        function editCamera(button) {
+                var cameraId = $(button).data('id');
+                var cameraName = $(button).data('name');
+                var cameraUrl = $(button).data('url');
+                var cameraImage = $(button).data('cameraImage');  // Assuming the image data is base64 encoded
+
+                // Populate the modal fields
+                $('#editCameraModal').find('#editCameraId').val(cameraId);
+                $('#editCameraModal').find('#editCameraName').val(cameraName);
+                $('#editCameraModal').find('#editCameraUrl').val(cameraUrl);
+
+                console.log("selected " , cameraId + cameraName);
+
+                // If the camera image is available, set the image preview
+                if (cameraImage) {
+                    $('#editCameraModal').find('#imagePreview').attr('src', 'data:image/jpeg;base64,' + cameraImage).show();
+                } else {
+                    $('#editCameraModal').find('#imagePreview').hide();
+                }
+
+                // Open the modal
+                $('#editCameraModal').modal('show');
+            }
+
+            function deleteCamera(button) {
+                var cameraId = $(button).data('id');
+                var cameraName = $(button).data('name');
+
+                // Set the ID in the hidden input field
+                $('#deleteCameraModal').find('#deleteCameraId').val(cameraId);
+                $('#deleteCameraModal').find('#deleteCameraName').val(cameraName);
+
+                // Update the modal body text to include the Camera Name
+                $('#deleteCameraModal .modal-body p').html(`Are you sure you want to delete this camera: <strong>${cameraName}</strong>?`);
+
+                // Show the delete confirmation modal
+                $('#deleteCameraModal').modal('show');
+            }
+
+        </script>
+    }
+
+    <!-- View Camera Modal -->
+    <div class="modal fade" id="viewCameraModal" tabindex="-1" role="dialog" aria-labelledby="viewCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewCameraModalLabel">View Camera Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="viewCameraName">Camera Name</label>
+                        <input type="text" class="form-control" id="viewCameraName" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="viewCameraUrl">Camera URL</label>
+                        <input type="text" class="form-control" id="viewCameraUrl" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>Camera Image Preview:</label><br />
+                        <img id="viewImagePreview" src="#" alt="Image Preview" style="max-width: 100%; height: auto;" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Camera Modal -->
+    <div class="modal fade" id="editCameraModal" tabindex="-1" role="dialog" aria-labelledby="editCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCameraModalLabel">Edit Camera</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="editCameraForm" action="@Url.Action("Edit", "Camera1")" method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="editCameraId" name="CameraId" />
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="editCameraName">Camera Name</label>
+                            <input type="text" class="form-control" id="editCameraName" name="Name" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editCameraUrl">Camera URL</label>
+                            <input type="text" class="form-control" id="editCameraUrl" name="Url" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editCameraImage">Camera Image</label>
+                            <input type="file" class="form-control" id="editCameraImage" name="CameraImage" accept="image/*" onchange="previewEditImage(event)" />
+                        </div>
+                        <div class="form-group">
+                            <label>Image Preview:</label><br />
+                            <img id="editImagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%; height: auto;" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Checklist Modal -->
+    <div class="modal fade" id="editChecklistModal" tabindex="-1" aria-labelledby="editChecklistModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Checklist for <span id="editChecklistCameraName"></span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editChecklistCameraId" />
+                    <div id="checklistContainer">
+                        <!-- Checklist items will be dynamically added here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveChecklistChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Delete Camera Modal -->
+    <div class="modal fade" id="deleteCameraModal" tabindex="-1" role="dialog" aria-labelledby="deleteCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCameraModalLabel">Delete Camera</h5>
+                </div>
+                <form id="deleteCameraForm" action="@Url.Action("Delete", "Camera1")" method="post">
+                    <input type="hidden" id="deleteCameraId" name="CameraId" />
+                    <input type="hidden" id="deleteCameraName" name="CameraName" />
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this camera: <strong></strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Fetch initial results when the modal is opened
+            $('#showResultsButton').on("click", function() {
+                fetchResults(currentPage);
+                $("#cameraCheckResultsModal").modal('show');
+            })
+
+            $('#addCamera').click(function() {
+                $('#addCameraModal').modal('show');
+            });
+
+            $('#addCameraForm').submit(function(e) {
+                var fileInput = $('#cameraImage')[0];
+                if (fileInput.files.length > 0 && fileInput.files[0].size > 5242880) { // 5MB limit
+                    e.preventDefault();
+                    alert('File size too large. Please select an image less than 5MB.');
+                }
+            });
+
+            $('#locationNameDropdown').change(function() {
+                var locationName = $(this).val();
+
+                if (locationName) {
+                    $.ajax({
+                        url: '@Url.Action("GetLevels")',
+                        type: 'GET',
+                        data: { name: locationName },
+                        success: function(data) {
+                            $('#locationLevelDropdown').empty().append('<option value="">Select</option>');
+                            $.each(data, function(index, value) {
+                            $('#locationLevelDropdown').append('<option value="' + value + '">' + value + '</option>');
+                        });
+                            $('#locationLevelDropdown').show(); // Show dropdown on success
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error); // Log error if any
+                        }
+                    });
+                } else {
+                    $('#locationLevelDropdown').hide(); // Hide dropdown if no selection
+                }
+            });
+
+            $("#checkAllCamerasButton").click(function () {
+                $.ajax({
+                    url: '@Url.Action("CheckAllCameras")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    success: function (data) {
+                        alert(data.message);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("There was a problem with the request:", error);
+                    }
+                });
+            });
+
+            // Reset aria-hidden when the modal is closed
+            $('#editChecklistModal').on('hidden.bs.modal', function () {
+                $(this).attr('aria-hidden', 'true');
+            });
+
+            // Focus the first dropdown when the modal opens
+            $('#editChecklistModal').on('shown.bs.modal', function () {
+                $(this).find('.checklist-dropdown').first().focus();
+            });
+
+            // Event listeners for add/remove buttons
+            $(document).on("click", ".add-checklist", function() {
+                // Get all checklists from any existing dropdown
+                const firstDropdown = $(".checklist-dropdown").first();
+                const allChecklists = [];
+                firstDropdown.find("option").each(function() {
+                    if ($(this).val()) {
+                        allChecklists.push({
+                            checkListId: $(this).val(),
+                            checkListName: $(this).text()
+                        });
+                    }
+                });
+
+                addChecklistItem(allChecklists);
+            });
+
+            $(document).on("click", ".remove-checklist", function() {
+                if ($(".checklist-group").length > 1) {
+                    $(this).closest(".checklist-group").remove();
+                }
+            });
+
+                    // Add this inside $(document).ready()
+        $(document).on('change input', '.checklist-dropdown, .start-time, .end-time', function() {
+            if ($(this).val()) {
+                $(this).css('border', ''); // Reset border when field is filled
+            }
+        });
+        });
+
+                function saveChecklistChanges() {
+            let cameraId = $('#editChecklistCameraId').val();
+            let checklistData = [];
+            let hasError = false;
+
+            // Reset all borders first
+            $('.checklist-dropdown, .start-time, .end-time').css('border', '');
+
+            $(".checklist-group").each(function () {
+                let $group = $(this);
+                let checkListId = $group.find(".checklist-dropdown").val();
+                let startTime = $group.find(".start-time").val();
+                let endTime = $group.find(".end-time").val();
+
+                // Track if this group has any input
+                let hasInput = checkListId || startTime || endTime;
+
+                if (hasInput) {
+                    // Highlight missing fields with red border
+                    if (!checkListId) {
+                        $group.find(".checklist-dropdown").css('border', '1px solid red');
+                        hasError = true;
+                    }
+                    if (!startTime) {
+                        $group.find(".start-time").css('border', '1px solid red');
+                        hasError = true;
+                    }
+                    if (!endTime) {
+                        $group.find(".end-time").css('border', '1px solid red');
+                        hasError = true;
+                    }
+
+                    // If all fields are filled, add to checklistData
+                    if (checkListId && startTime && endTime) {
+                        checklistData.push({
+                            CheckListId: parseInt(checkListId),
+                            StartTime: startTime,
+                            EndTime: endTime
+                        });
+                    }
+                }
+            });
+
+            // If there are groups with partial input, show error
+            if (hasError) {
+                alert('Please fill in all required fields for checklists!');
+                return;
+            }
+
+            // If no valid checklists were added but there are groups
+            if (checklistData.length === 0 && $(".checklist-group").length > 0) {
+                alert('Please complete at least one checklist or remove empty entries!');
+                return;
+            }
+
+            $.ajax({
+                url: '/FireDetection24hrs/UpdateCameraChecklist',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    CameraId: cameraId,
+                    Checklists: checklistData
+                }),
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message);
+                        $('#editChecklistModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert("Error updating checklist.");
+                    }
+                },
+                error: function () {
+                    alert("An error occurred while updating the checklist.");
+                }
+            });
+        }
+
+        function reset() {
+            document.getElementById("filterCameraName").value = "";
+            document.getElementById("filterStatus").value = "";
+            document.getElementById("filterStartDate").value = "";
+            document.getElementById("filterEndDate").value = "";
+        }
+
+        document.querySelector(".close").addEventListener("click", reset);
+
+        let currentPage = 1;
+        const pageSize = 20;
+
+        function fetchResults(page = 1) {
+            // Get filter values
+            const cameraName = document.getElementById("filterCameraName").value;
+            const status = document.getElementById("filterStatus").value;
+            const startDate = document.getElementById("filterStartDate").value;
+            const endDate = document.getElementById("filterEndDate").value;
+
+            // Build query parameters
+            const queryParams = new URLSearchParams({
+                page,
+                pageSize,
+                cameraName,
+                status,
+                startDate,
+                endDate,
+            });
+
+            fetch(`/Camera1/GetCameraCheckResults?${queryParams.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.success) {
+                const resultsContainer = document.getElementById("cameraResultsContainer");
+                const paginationControls = document.getElementById("paginationControls");
+
+                if (data.results.length > 0) {
+                    // Build results table
+                    let resultsHtml = '<table class="table table-bordered">';
+                    resultsHtml += '<thead><tr><th>Camera ID</th><th>Camera Name</th><th>Status</th><th>Message</th><th>Timestamp</th></tr></thead><tbody>';
+
+                    data.results.forEach(result => {
+                        const statusClass =
+                            result.status === 'Working'
+                                ? 'status-working'
+                                : result.status === 'Not Working'
+                                ? 'status-not-working'
+                                :  result.status === 'Blurry'
+                                ? 'status-blurry'
+                                :  result.status === 'Dark'
+                                ? 'status-dark'
+                                : 'status-unknown';
+
+
+                        resultsHtml += `
+                        <tr>
+                            <td>${result.cameraId}</td>
+                            <td>${result.cameraName}</td>
+                            <td class="${statusClass}">${result.status}</td>
+                            <td>${result.note}</td>
+                            <td>${result.timestamp}</td>
+                        </tr>
+                        `;
+                    });
+
+                    resultsHtml += '</tbody></table>';
+                    resultsContainer.innerHTML = resultsHtml;
+
+                    // Build pagination controls
+                    const { currentPage, totalPages } = data.pagination;
+                    let paginationHtml = '';
+
+                    if (totalPages > 1) {
+                        if (currentPage > 1) {
+                            paginationHtml += `<button class="btn btn-secondary" onclick="fetchResults(${currentPage - 1})">Previous</button>`;
+                      }
+                      paginationHtml += ` <span>Page ${currentPage} of ${totalPages}</span> `;
+                        if (currentPage < totalPages) {
+                            paginationHtml += `<button class="btn btn-secondary" onclick="fetchResults(${currentPage + 1})">Next</button>`;
+                        }
+                    }
+
+                    paginationControls.innerHTML = paginationHtml;
+                  } else {
+                        resultsContainer.innerHTML = '<p class="text-center">Don\'t have any result for checking</p>';
+                        paginationControls.innerHTML = '';
+                  }
+                } else {
+                    alert("Failed to fetch results. Please try again.");
+                }
+              })
+              .catch(error => console.error('Error fetching results:', error));
+          }
+
+        function resetFilter(filterId) {
+            // Clear the value of the specified filter input
+            document.getElementById(filterId).value = "";
+
+            // Fetch results with the updated filters
+            fetchResults(1); // Reset to the first page
+        }
+
+        document.getElementById("closeHistoryButton").addEventListener("click", function () {
+            reset();
+        });
+
+        // Fetch results when the "Apply Filters" button is clicked
+        document.getElementById("applyFiltersButton").addEventListener("click", function () {
+            currentPage = 1; // Reset to the first page
+            fetchResults(currentPage);
+        });
+
+        function previewImage(event) {
+            var file = event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#imagePreview')
+                        .attr('src', e.target.result)
+                        .css({
+                            'display': 'block',
+                            'width': '200px',
+                            'height': '200px',
+                            'object-fit': 'cover'
+                        });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewEditImage(event) {
+            var file = event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#editImagePreview')
+                        .attr('src', e.target.result)
+                        .css({
+                            'display': 'block',
+                            'width': '200px',
+                            'height': '200px',
+                            'object-fit': 'cover'
+                        });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function editCamera(button) {
+            var cameraId = $(button).data('id');
+            var cameraName = $(button).data('name');
+            var cameraUrl = $(button).data('url');
+            var cameraImage = $(button).data('camera-image');
+
+            $('#editCameraModal').find('#editCameraId').val(cameraId);
+            $('#editCameraModal').find('#editCameraName').val(cameraName);
+            $('#editCameraModal').find('#editCameraUrl').val(cameraUrl);
+
+            // Show existing images
+            if (cameraImage) {
+                $('#editImagePreview')
+                    .attr('src', 'data:image/jpeg;base64,' + cameraImage)
+                    .css({
+                        'display': 'block',
+                        'width': '200px',
+                        'height': '200px',
+                        'object-fit': 'cover'
+                    });
+            } else {
+                $('#editImagePreview').hide();
+            }
+
+            $('#editCameraModal').modal('show');
+        }
+
+        function viewCamera(button) {
+            var cameraId = $(button).data('id');
+            var cameraName = $(button).data('name');
+            var cameraUrl = $(button).data('url');
+            var cameraImage = $(button).data('cameraImage');
+
+            // Adding debug logs
+            console.log("Camera Image Data:", cameraImage);
+
+            // Populate the modal fields
+            $('#viewCameraModal').find('#viewCameraName').val(cameraName);
+            $('#viewCameraModal').find('#viewCameraUrl').val(cameraUrl);
+
+            // Modify image display logic
+            if (cameraImage) {
+                $('#viewCameraModal').find('#viewImagePreview')
+                    .attr('src', 'data:image/jpeg;base64,' + cameraImage)
+                    .css({
+                        'display': 'block',
+                        'width': '200px',
+                        'height': '200px',
+                        'object-fit': 'cover'
+                    });
+            } else {
+                $('#viewCameraModal').find('#viewImagePreview')
+                    .attr('src', '')
+                    .hide();
+            }
+
+            // Open the modal
+            $('#viewCameraModal').modal('show');
+        }
+
+        function openEditChecklistModal(cameraId, cameraName) {
+            $('#editChecklistCameraId').val(cameraId);
+            $('#editChecklistCameraName').text(cameraName);
+            $("#checklistContainer").empty(); // Clear previous selections
+            $('.checklist-dropdown, .start-time, .end-time').css('border', ''); // Reset all borders when opening modal
+
+            // Fetch existing checklists for the selected camera
+            $.ajax({
+                url: '/FireDetection24hrs/GetCameraCheckLists',
+                type: 'GET',
+                data: { cameraId: cameraId },
+                success: function (response) {
+                    if (response.success) {
+                        // Function to generate dropdown options from allChecklists
+                        function generateChecklistOptions(allChecklists, selectedId = null) {
+                            let options = '<option value="">Select Checklist</option>';
+                            allChecklists.forEach(function (checklist) {
+                                const isSelected = selectedId == checklist.checkListId ? 'selected' : '';
+                                options += `<option value="${checklist.checkListId}" ${isSelected}>${checklist.checkListName}</option>`;
+                            });
+                            return options;
+                        }
+
+                        // If the camera has associated checklists, populate them
+                        if (response.cameraChecklists && response.cameraChecklists.length > 0) {
+                            response.cameraChecklists.forEach(function (cl, index) {
+                                addChecklistItem(response.allChecklists, cl.checkListId, cl.startTime, cl.endTime);
+                            });
+                        } else {
+                            // If no checklists exist, show at least one dropdown
+                            addChecklistItem(response.allChecklists);
+                        }
+                    } else {
+                        alert("Failed to fetch checklists.");
+                    }
+                },
+                error: function () {
+                    alert("Failed to fetch checklists.");
+                }
+            });
+
+            $('#editChecklistModal').modal('show');
+            $('#editChecklistModal').attr('aria-hidden', 'false');
+        }
+
+        function deleteAllChecklists(cameraId, cameraName) {
+            if (confirm(`Are you sure you want to delete all checklists for camera: ${cameraName}?`)) {
+                $.ajax({
+                    url: '/FireDetection24hrs/UpdateCameraChecklist',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        CameraId: cameraId,
+                        Checklists: [] // Empty array to delete all checklists
+                    }),
+                    success: function (response) {
+                        if (response.success) {
+                            alert("All checklists deleted successfully!");
+                            location.reload();
+                        } else {
+                            alert("Error deleting checklists.");
+                        }
+                    },
+                    error: function () {
+                        alert("An error occurred while deleting checklists.");
+                    }
+                });
+            }
+        }
+
+        function addChecklistItem(allChecklists, selectedId = null, startTime = '', endTime = '') {
+            // Format the time values correctly if they exist
+            const formattedStartTime = startTime || '';
+            const formattedEndTime = endTime || '';
+
+            const checklistGroup = $(`
+                <div class="checklist-group mb-3">
+                    <div class="form-group">
+                        <label for="checklist" class="mb-1">Checklist <span class="text-danger">*</span></label>
+                        <select class="form-control checklist-dropdown">
+                            ${generateChecklistOptions(allChecklists, selectedId)}
+                        </select>
+                    </div>
+                    <div class="form-group d-flex align-items-center">
+                        <div class="time-input-wrapper mr-3">
+                            <label for="startTime" class="mb-1">Start Time: <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control start-time" value="${formattedStartTime}" />
+                        </div>
+                        <div class="time-input-wrapper">
+                            <label for="endTime" class="mb-1">End Time: <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control end-time" value="${formattedEndTime}" />
+                        </div>
+                    </div>
+                    <div class="text-right mt-2">
+                        <i class="fas fa-plus add-checklist" style="margin-left: 10px; cursor: pointer; color: #333;"></i>
+                        <i class="fas fa-trash remove-checklist" style="margin-left: 8px; cursor: pointer; color: red;"></i>
+                    </div>
+                </div>
+            `);
+
+            $("#checklistContainer").append(checklistGroup);
+        }
+
+        function generateChecklistOptions(allChecklists, selectedId = null) {
+            let options = '<option value="">Select Checklist</option>';
+            allChecklists.forEach(function (checklist) {
+                const isSelected = selectedId == checklist.checkListId ? 'selected' : '';
+                options += `<option value="${checklist.checkListId}" ${isSelected}>${checklist.checkListName}</option>`;
+            });
+            return options;
+        }
+    </script>
+</body>
+</html>

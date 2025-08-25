@@ -1,0 +1,214 @@
+﻿@{
+	ViewBag.Title = "Camera List View";
+}
+@{
+	var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+	var videoFeedUrl = ViewBag.VideoFeedUrl as string;
+}
+
+@section Styles {
+	<link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+
+		@* <style>
+		.container-fluid2 {
+			width: 100%;
+			margin: auto;
+			border-radius: 10px;
+			background-color: white;
+			padding: 20px;
+		}
+
+		.cam-row {
+			display: flex;
+			justify-content: center;
+		}
+
+		.grid-container {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 15px;
+			width: 90%;
+			max-width: 1200px;
+		}
+
+		.camera-view {
+			background-color: #333;
+			color: #fff;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			aspect-ratio: 16 / 9;
+			border: 2px solid #555;
+			border-radius: 8px;
+			overflow: hidden;
+			font-size: 16px;
+			font-weight: bold;
+		}
+	</style> *@
+
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Camera Page</title>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+	<script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+	@* <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> *@
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	@* <link rel="stylesheet" type="text/css" href="~/Assets/Assets/Templates/App/app.css"> *@
+
+	<!--Font Style-->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<!--CSS Style-->
+	<link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+
+	@* 	dotnet add package WebRtcSharp
+	dotnet add package Microsoft.AspNetCore.Mvc *@
+
+	<!-- Main View -->
+	<div class="container-fluid"
+		 style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;">
+		<div style="justify-content: space-between; align-items: center;">
+			<h3 style="margin: 0;">Camera List View</h3>
+		</div>
+		<hr />
+		<div class="row">
+			<div class="col-md-3" style="margin-left: 3px;">
+				<div>
+					<label for="route" style="white-space: nowrap;">Select Block</label>
+					<select id="locationNameDropdown" class="form-control" name="selectedBlock">
+						<option value="">Select</option>
+						@foreach (var location in locations.DistinctBy(l => l.Name))
+						{
+							<option value="@location.Name">@location.Name</option>
+						}
+					</select>
+				</div>
+				<br />
+				<div>
+					<label for="route" style="white-space: nowrap;">Select Level</label>
+					<select id="locationLevelDropdown" class="form-control" name="selectedLevel">
+					</select>
+				</div>
+				<br />
+				<div>
+					@* <button type="submit" class="btn btn-primary">Find</button> *@
+					<button type="button" id="findButton" class="btn btn-primary">Find</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<br />
+
+	<div class="container-fluid2">
+		<div style="justify-content: space-between; align-items: center;">
+			<h3 style="margin: 0;">Camera List View</h3>
+		</div>
+		<hr />
+		<div class="cam-row">
+			<div class="grid-container">
+				<div class="camera-view" id="cam1">
+					<iframe src="http://192.168.0.2:8888/office2/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam2">
+					<iframe src="http://192.168.0.2:8888/conference/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam3">
+					<iframe src="http://192.168.0.2:8888/office1/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam4">
+					<iframe src="http://192.168.0.2:8888/entrance/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam5">
+					<iframe src="http://192.168.0.2:8888/test/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam6">
+					<iframe src="http://192.168.0.2:8888/warehouse/" allowfullscreen style="width: 100%; height: 100%; border: none;"></iframe>
+				</div>
+				<div class="camera-view" id="cam7">
+					<iframe src="http://192.168.0.2:8888/storage/" allowfullscreen style="width: 100%; height: 100%; border: none;">
+					</iframe>
+				</div>
+				<div class="camera-view" id="cam8">No Signal</div>
+				<div class="camera-view" id="cam9">No Signal</div>
+			</div>
+		</div>
+	</div>
+
+
+	@* <div class="container-fluid" style="width: 100%; margin: auto; border-radius: 10px; background-color: white; padding: 20px;"> *@
+	@*     <div style="display: flex; justify-content: space-between; align-items: center;"> *@
+	@*         <h3 style="margin: 0;">IPCam(s) View</h3> *@
+	@*     </div> *@
+	@*     <hr /> *@
+
+	@*     @* Pull this command to pull the mediamtx streaming image from docker hub and change the mediamtx.yml file *@ 
+	@*     @* docker run --rm -it --network=host bluenviron/mediamtx:latest * *@
+
+	@*     <div class="grid-container"> *@
+	@*         @* <div class="camera-view" id="cam1">  *@ 
+	@*         @*     <iframe src="http://192.168.0.2:8888/cam2/" allowfullscreen style="width: 100%; height: 100%;"></iframe> *@ 
+	@*         @* </div> *@ 
+
+	@*         @*  <div class="camera-view" id="cam2">  *@ 
+	@*         @*      <iframe src="http://192.168.0.2:8888/cam1/" allowfullscreen style="width: 100%; height: 100%;"></iframe>  *@ 
+	@*         @*  </div>  *@ 
+	@*     </div> *@
+
+	@* </div> *@
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script>
+
+		// Location Name and Level Dropdown
+		$(document).ready(function() { $('#locationLevelDropdown').hide(); // Hide level dropdown initially
+
+
+			$('#locationNameDropdown').change(function() {
+				var locationName = $(this).val();
+				if (locationName) {
+					$.ajax({ url: '@Url.Action("GetLevels")',
+					type: 'GET',
+					data: { name: locationName },
+					success: function(data) {
+						$('#locationLevelDropdown').empty().append('<option value="">Select</option>');
+						$.each(data, function(index, value) {
+							$('#locationLevelDropdown').append('<option value="' + value + '">' + value + '</option>');
+						});
+						$('#locationLevelDropdown').show(); // Show dropdown on success
+					},
+					error: function(xhr, status, error) {
+						console.error(error); // Log error if any
+						}
+					});
+				} else {
+					$('#locationLevelDropdown').hide(); // Hide dropdown if no selection
+				}
+			});
+		});
+
+		//IP Cam(s) View Handling
+		$(document).ready(function(){
+			// Initially hide the container
+			$('.container-fluid2').hide();
+
+
+			// Handle Find button click
+			$('#findButton').click(function() {
+			// Show the container/table with a fade-in effect
+				$('.container-fluid2').fadeIn(1000); // 1000ms = 1 second for fading in
+			});
+		});
+
+	</script>
+</body>
+</html>

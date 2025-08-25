@@ -1,0 +1,406 @@
+﻿@{
+    ViewBag.Title = "Check List";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+@{
+    var checklists = ViewBag.Checklists as List<AdminPortalV8.Models.Epatrol.CheckList>;
+    var aimodels = ViewBag.AiModels as List<AdminPortalV8.Models.Epatrol.Aimodel>;
+}
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css"> *@
+}
+@section scripts {
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#checklist-table').DataTable({
+                responsive: true
+            });
+
+            // JavaScript to handle AI Model field on/off and validation
+            function toggleModelField() {
+                var selectedType = $('#addNewType').val();
+                var modelInput = $('#addModelInput');
+                var modelSelect = $('#model-select');
+
+                if (selectedType === 'Auto') {
+                    modelInput.show();
+                    modelSelect.prop('required', true); // Make ModelId required for Auto
+                } else {
+                    modelInput.hide();
+                    modelSelect.prop('required', false); // Make ModelId not required for Manual
+                    modelSelect.val(''); // Clear the selection
+                }
+            }
+
+            function toggleModelField2() {
+                var selectedType = $('#editChecklistType').val();
+                var modelInput = $('#editModelInput');
+                var modelSelect = $('#editChecklistModel');
+
+                if (selectedType === 'Auto') {
+                    modelInput.show();
+                    modelSelect.prop('required', true); // Make ModelId required for Auto
+                } else {
+                    modelInput.hide();
+                    modelSelect.prop('required', false); // Make ModelId not required for Manual
+                    modelSelect.val(''); // Clear the selection
+                }
+            }
+
+            toggleModelField();
+            toggleModelField2();
+
+            $('#addNewType').on('change', function () {
+                toggleModelField();
+            });
+
+            $('#editChecklistType').on('change', function () {
+                toggleModelField2();
+            });
+        });
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Page</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3 style="margin: 0;">Checklist</h3>
+            <div>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#add-checklist-module" id="btn-add-module">
+                    Add New Checklist
+                </button>
+            </div>
+        </div>
+        <hr />
+        <div class="table-responsive">
+            <table id="checklist-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Checklist Name</th>
+                        <th>Model</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (checklists != null && checklists.Any())
+                    {
+                        @for (int i = 0; i < checklists.Count; i++)
+                        {
+                            <tr>
+                                <td style="padding: 10px;">@(i + 1)</td>
+                                <td style="padding: 10px;">
+                                    @checklists[i].CheckListName
+                                </td>
+                                <td style="padding: 10px;">
+                                    @checklists[i].ModelNavigation?.Name
+                                </td>
+                                <td style="padding: 10px;" class="@(checklists[i].Type == "Manual" ? "status-manual" : "status-auto")">
+                                    @checklists[i].Type
+                                </td>
+                                <td style="padding: 10px;">
+                                    <button type="button" class="btn btn-warning" style="padding: 5px 15px;" data-toggle="modal" data-target="#editChecklistModal"
+                                            data-id="@checklists[i].CheckListId"
+                                            data-type="@checklists[i].Type"
+                                            data-name="@checklists[i].CheckListName"
+                                            data-model="@checklists[i].ModelId">
+                                        <i class="fas fa-edit"></i>
+                                        Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 15px;" data-toggle="modal" data-target="#deleteChecklistModal"
+                                            data-id="@checklists[i].CheckListId">
+                                        <i class="fas fa-trash"></i>
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 10px;">No checklists available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Checklist Modal -->
+    <div class="modal fade" id="add-checklist-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addChecklistForm" action="@Url.Action("CreateNewChecklist", "Checklist")" method="post">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Checklist</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Type <span class="text-danger">*</span></label>
+                                        <select class="form-control" id="addNewType" name="Type" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;" required>
+                                            <option value="Manual">Manual</option>
+                                            <option value="Auto">Auto</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="Name" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;" required/>
+                                    </div>
+                                    <div class="col-md-6" id="addModelInput" style="display: none;">
+                                        <label>Model <span class="text-danger">*</span></label>
+                                        <select id="model-select" class="form-control" name="ModelId" style="border-radius: 5px; padding-left: 10px; padding-right: 10px; width: 100%;">
+                                            <option value="" selected disabled hidden>Choose here</option>
+                                            @if (aimodels != null && aimodels.Any())
+                                            {
+                                                foreach (var aimodel in aimodels)
+                                                {
+                                                    <option value="@aimodel.ModelId">@aimodel.Name</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option disabled>No models available</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="submit" class="btn btn-primary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Checklist Modal -->
+    <div class="modal fade" id="editChecklistModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editChecklistForm" action="@Url.Action("EditChecklist", "Checklist")" method="post">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Checklist</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mel-section">
+                            <div class="form-group" style="padding: 10px 20px;">
+                                <!-- Hidden Field for CheckListId -->
+                                <input type="hidden" name="CheckListId" id="editChecklistId" />
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Type <span class="text-danger">*</span></label>
+                                        <select class="form-control" id="editChecklistType" name="Type" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;" required>
+                                            <option value="Manual">Manual</option>
+                                            <option value="Auto">Auto</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="CheckListName" id="editChecklistName" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;" required/>
+                                    </div>
+                                    <div class="col-md-6" id="editModelInput" style="display: none;">
+                                        <label>Model <span class="text-danger">*</span></label>
+                                        <select id="editChecklistModel" class="form-control" name="ModelId" style="border-radius: 5px; padding-left: 10px; padding-right: 10px;">
+                                            <option value="" selected disabled hidden>Choose here</option>
+                                            @if (aimodels != null && aimodels.Any())
+                                            {
+                                                foreach (var aimodel in aimodels)
+                                                {
+                                                    <option value="@aimodel.ModelId">@aimodel.Name</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option disabled>No models available</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Checklist Modal -->
+    <div class="modal fade" id="deleteChecklistModal" tabindex="-1" role="dialog" aria-labelledby="deleteChecklistModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteChecklistModalLabel">Delete Checklist</h5>
+                </div>
+                <form id="deleteChecklistForm">
+                    <input type="hidden" id="deleteChecklistId" name="ChecklistId" />
+                    <input type="hidden" id="forceDelete" name="forceDelete" value="false" />
+                    <div class="modal-body">
+                        <p id="deleteConfirmationText">Are you sure you want to delete this Checklist?</p>
+                        <div id="checkpointWarning" class="alert alert-warning" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelButton">Cancel</button>
+                        <button type="submit" class="btn btn-danger" id="deleteButton">Delete</button>
+                        <button type="button" class="btn btn-danger" id="forceDeleteButton" style="display: none;">Force Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript -->
+    <script>
+        // Handle the Edit Modal population
+        $('#editChecklistModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var checklistId = button.data('id'); 
+            var checklistType = button.data('type'); 
+            var checklistName = button.data('name');
+            var checklistModel = button.data('model');
+
+            var modal = $(this);
+            modal.find('#editChecklistId').val(checklistId);
+            modal.find('#editChecklistName').val(checklistName);
+            modal.find('#editChecklistType').val(checklistType);
+
+            // Conditionally show/hide the AI Model field
+            if (checklistType === 'Auto') {
+                modal.find('#editChecklistModel').val(checklistModel).closest('.col-md-6').show();
+            } else {
+                modal.find('#editChecklistModel').val('').closest('.col-md-6').hide();
+            }
+        });
+
+        $(document).ready(function () {
+           // Open Delete Confirmation Modal
+           $('#deleteChecklistModal').on('show.bs.modal', function (event) {
+               var button = $(event.relatedTarget);
+               var checklistId = button.data('id');
+               var modal = $(this);
+
+               // Reset modal state
+               modal.find('#deleteChecklistId').val(checklistId);
+               modal.find('#forceDelete').val('false');
+               modal.find('#deleteConfirmationText').show();
+               modal.find('#checkpointWarning').hide().empty();
+               modal.find('#deleteButton').show();
+               modal.find('#forceDeleteButton').hide();
+
+               // Check if checklist is linked to any checkpoints
+               checkCheckpointAssociations(checklistId);
+           });
+
+                // Standard Delete Checklist
+            $('#deleteChecklistForm').on('submit', function (e) {
+                e.preventDefault();
+                var checklistId = $('#deleteChecklistId').val();
+                var forceDelete = $('#forceDelete').val() === 'true';
+
+                $.ajax({
+                    url: '@Url.Action("Delete", "Checklist")',
+                    type: 'POST',
+                    data: {
+                        ChecklistId: checklistId,
+                        forceDelete: forceDelete
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#deleteChecklistModal').modal('hide');
+                                alert(response.message);
+                                location.reload(); // Refresh checklist table
+                        } else if (response.checkpointNames) {
+                            // Show warning about associated checkpoints
+                            $('#deleteConfirmationText').hide();
+                            $('#checkpointWarning').show().html(
+                                '<strong>Warning:</strong> This checklist is linked to: ' +
+                                response.checkpointNames.join(', ') +
+                                '. <br>Forcing deletion will remove it from these checkpoints.'
+                            );
+                            $('#deleteButton').hide();
+                            $('#forceDeleteButton').show();
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while processing your request.');
+                    }
+                });
+            });
+
+        // Force Delete Checklist
+            $('#forceDeleteButton').on('click', function () {
+                $('#forceDelete').val('true');
+                $('#deleteChecklistForm').submit();
+            });
+
+            // Check for checkpoint associations before deletion
+            function checkCheckpointAssociations(checklistId) {
+                $.ajax({
+                    url: '@Url.Action("Delete", "Checklist")',
+                    type: 'POST',
+                    data: { ChecklistId: checklistId, forceDelete: false },
+                    success: function (response) {
+                        if (response.checkpointNames && response.checkpointNames.length > 0) {
+                            $('#deleteConfirmationText').hide();
+                            $('#checkpointWarning').show().html(
+                                '<strong>Warning:</strong> This checklist is used by: ' +
+                                response.checkpointNames.join(', ') +
+                                '. <br>Forcing deletion will remove it from these checkpoints.'
+                            );
+                            $('#deleteButton').hide();
+                            $('#forceDeleteButton').show();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

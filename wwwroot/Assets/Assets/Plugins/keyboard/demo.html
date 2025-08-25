@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery & jQuery UI + theme (required) -->
+    <link href="css/jquery-ui.min.css" rel="stylesheet">
+    <!-- keyboard widget css & script (required) -->
+    <link href="css/keyboard.css" rel="stylesheet">
+
+</head>
+<body>
+
+    <div class="container">
+
+        <form action="" method="post" role="form">
+
+            <div class="row" style="padding-top:20%;">
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <div class="form-group">
+                        <input type="text" name="name" class="form-control" id="name" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row button-area">
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+
+                </div>
+
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12">
+                            <div class="form-group active text-center">
+                                <button class="btn btn-default" type="button" data-toggle="modal" data-target="#modal"><i class="fa fa-refresh" aria-hidden="true"> </i> OTP</button>
+
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12">
+                            <div class="form-group active text-center">
+                                <button type="submit" class="btn btn-default">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+
+                </div>
+
+                <div class="row" style="padding-top:20px;">
+                    <div class="col-md-12 text-center">
+                      <p>Minimal demo for the keyboard.</p>
+                        <p>For more information, please visit: <a href="https://mottie.github.io/Keyboard/">https://mottie.github.io/Keyboard/</a></p>
+                    </div>
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered custom-modal" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <h5>An OTP has been sent to xxxxxx3358.</h5>
+                    </div>
+                    <div class="modal-footer text-center">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Either slim or standard jquery.js-->
+    <script src="js/jquery-latest-slim.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery-ui-custom.min.js"></script>
+    <script src="js/jquery.keyboard.js"></script>
+
+    <script>
+        $(function () {
+
+
+            $('#name').keyboard({
+                usePreview: false,
+                layout: 'custom',
+                restrictInput: true, // Prevent keys not in the displayed keyboard from being typed in
+                preventPaste: true,  // prevent ctrl-v and right click
+                autoAccept: true,
+                maxLength: 10,
+                useCombos: false,
+                customLayout: {
+                    'normal': [
+                        '7 8 9',
+                        '4 5 6',
+                        '1 2 3',
+                        '{clear} 0 {bksp}',
+                        '{cancel} {resend!!} {accept}'
+                    ]
+                },
+                display: {
+                    'resend': '<i class="fa fa-refresh" aria-hidden="true"> </i> OTP',
+                },
+                css: {
+                    // input & preview
+                    input: 'form-control input-sm',
+                    // keyboard container
+                    container: 'center-block dropdown-menu', // jumbotron
+                    // default state
+                    buttonDefault: 'btn btn-default',
+                    // hovered button
+                    buttonHover: 'btn-primary',
+                    // Action keys (e.g. Accept, Cancel, Tab, etc);
+                    // this replaces "actionClass" option
+                    buttonAction: 'active',
+                    // used when disabling the decimal button {dec}
+                    // when a decimal exists in the input area
+                    buttonDisabled: 'disabled'
+                }
+            });
+
+
+            $.keyboard.keyaction.resend = function (base) {
+                base.close();
+                $("#modal").modal("toggle");
+            };
+
+        });
+    </script>
+
+</body>
+
+
+
+</html>

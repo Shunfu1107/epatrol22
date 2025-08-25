@@ -1,0 +1,120 @@
+﻿@using AdminPortalV8.Helpers
+@model RestaurantView
+@{
+    ViewBag.Title = "Restaurants";
+
+    var addRestaurant = @AppModuleKeys.Restaurant.CreatePrimaryKey;
+    var editRestaurant = @AppModuleKeys.Restaurant.EditPrimaryKey;
+    var deleteRestaurant = @AppModuleKeys.Restaurant.RemovePrimaryKey;
+    var viewRestaurant = @AppModuleKeys.Restaurant.ViewPrimaryKey;
+}
+
+
+@section Styles {
+    <link rel="stylesheet" type="text/css" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+}
+
+@section Scripts {
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script src="~/Assets/Plugins/CustomListingJS.js"></script>
+    <script>
+        function Delete(id, name) {
+            bootbox.confirm({
+                size: "small",
+                message: "Do you wish to remove Restaurant (" + name + ") ?",
+                buttons: {
+                    cancel: {
+                        label: 'Cancel'
+                    },
+                    confirm: {
+                        label: 'Remove'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        window.location = '@Url.Action("Delete")?Id=' + id;
+                        return true;
+                    }
+                    else {
+                        return true;
+                    }
+                }
+            });
+        }
+    </script>
+    @Html.Raw(TempData["msg"])
+}
+
+<div class="box box-info">
+    <div class="box-body table-responsive">
+        <table id="tableList" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>
+                        S/N
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].Name)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].Anchor)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].StartDate)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].Robots)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].Location)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.RestaurantList[0].Active)
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.RestaurantList)
+                {
+                    <tr>
+                        <td></td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Anchor)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.StartDate)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Robots)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Location)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Active)
+                        </td>
+                        <td>
+                            @Html.ActionLink(" ", "Detail", new { uid = item.Id }, new { @class = "mel-disable mel-section-trigger fas fa-eye", title = "View Restaurant", data_permission_id = viewRestaurant, data_permission_act = "mel-enable|mel-disable" })
+                            @Html.ActionLink(" ", "Edit", new { uid = item.Id }, new { @class = "mel-disable mel-section-trigger fas fa-edit", title = "Edit Restaurant", data_permission_id = editRestaurant, data_permission_act = "mel-enable|mel-disable" })
+                            @Html.ActionLink(" ", "", new { uid = item.Id }, new { @class = "mel-disable mel-section-trigger fas fa-trash", @onclick = "Delete(" + item.Id + ",'" + item.Name + "')", href = "javascript:void(0)", data_permission_id = deleteRestaurant, data_permission_act = "mel-enable|mel-disable" })
+
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="box-footer text-right" style="padding:15px">
+        @Html.ActionLink("Create Restaurant", "Create", "Restaurants", null, new { @class = "mel-disable mel-section-trigger btn btn-primary", id = "btn-add-restaurant", data_permission_id = addRestaurant, data_permission_act = "mel-enable|mel-disable" })
+        
+      
+    </div>
+</div>
+
+

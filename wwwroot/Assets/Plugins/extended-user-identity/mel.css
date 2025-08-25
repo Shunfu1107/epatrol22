@@ -1,0 +1,54 @@
+﻿
+.mel-enable {
+    display: initial;
+}
+
+.mel-disable {
+    display: none;
+}
+
+.required-field:after {
+    content: ' *';
+}
+
+/*Hide Sorting Arrow*/
+.dataTable > thead > tr > th[class*="sort"]:before, .dataTable > thead > tr > th[class*="sort"]:after {
+    display: none;
+}
+
+/*Make text datalist thead datalist center*/
+table.dataTable thead > tr > th.sorting_asc, table.dataTable thead > tr > th.sorting_desc, table.dataTable thead > tr > th.sorting, table.dataTable thead > tr > td.sorting_asc, table.dataTable thead > tr > td.sorting_desc, table.dataTable thead > tr > td.sorting {
+     padding-right: 0px !important; 
+}
+
+.datepicker{
+    padding: 0 !important;
+}
+
+.main-sidebar {
+    display: none;
+}
+
+.content {
+    display: none;
+}
+
+.box-info, .box-solid, .NavTimeBank {
+    -webkit-animation-name: fadeInRight;
+    animation-name: fadeInRight;
+    -webkit-animation-duration: .4s;
+    animation-duration: .4s;
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}

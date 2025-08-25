@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-AdminPortalV7-4a0d13f5-845c-42fe-a5d5-6fb3c900c4cf</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\Migrations\00000000000000_CreateIdentitySchema.cs" />
+    <Compile Remove="Data\Migrations\00000000000000_CreateIdentitySchema.Designer.cs" />
+    <Compile Remove="Entities\IdentityRole.cs" />
+    <Compile Remove="Libraries\ExtendedUserIdentity\Helpers\AppModuleKeys.cs" />
+    <Compile Remove="Libraries\ExtendedUserIdentity\Helpers\UserStoreManager.cs" />
+    <Compile Remove="Libraries\ExtendedUserIdentity\Services\AccessLevelService.cs" />
+    <Compile Remove="Libraries\ExtendedUserIdentity\Services\DatabaseService.cs" />
+    <Compile Remove="Libraries\ExtendedUserIdentity\Services\RoleService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="31.0.2" />
+    <PackageReference Include="EPPlus" Version="7.0.10" />
+    <PackageReference Include="EWSoftware.PDI" Version="2023.1.2" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.67.0.3364" />
+    <PackageReference Include="itext7.pdfhtml" Version="5.0.3" />
+    <PackageReference Include="iTextSharp" Version="5.5.13.3" />
+    <PackageReference Include="MailKit" Version="4.9.0" />
+    <PackageReference Include="Microsoft.AspNet.Identity.Core" Version="2.2.4" />
+    <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Owin" Version="4.2.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+    <PackageReference Include="Quartz" Version="3.13.1" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="Syncfusion.DocIO.AspNet.Mvc5" Version="25.1.35" />
+    <PackageReference Include="Syncfusion.DocToPdfConverter.AspNet.Mvc5" Version="25.1.35" />
+    <PackageReference Include="Syncfusion.OfficeChartToImageConverter.AspNet.Mvc5" Version="25.1.35" />
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="face_images_db\" />
+    <Folder Include="Libraries\ExtendedUserIdentity\Models\ViewModels\NewFolder1\" />
+    <Folder Include="Libraries\ExtendedUserIdentity\Models\ViewModels\NewFolder\" />
+    <Folder Include="random_face_detection\face_recognition.db\" />
+    <Folder Include="wwwroot\Output\" />
+    <Folder Include="wwwroot\stream\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="efpt.config.json.user" />
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties wwwroot_4assets_4plugins_4bootstrap_4_1bower_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>

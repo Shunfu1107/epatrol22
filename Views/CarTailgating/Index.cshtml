@@ -1,0 +1,378 @@
+﻿﻿@{
+    ViewBag.Title = "Car Tailgating";
+}
+
+@section Styles {
+    @* <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+    <style>
+
+    </style> *@
+}
+
+@{
+    var cameras = ViewBag.Cameras as List<AdminPortalV8.Models.Epatrol.Camera>;
+}
+
+@section scripts {
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#camera-table').DataTable({
+                responsive: true
+            });
+        });
+    </script>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Tailgating Page</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Main View -->
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Car Tailgating</h3>
+            <div>
+            </div>
+        </div>
+        <hr />
+        <div id="loadingMessage" style="display: none;">Loading camera stream, please wait...</div>
+        <div class="table-responsive">
+            <table id="camera-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Camera</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (cameras != null)
+                    {
+                        @for (int i = 0; i < cameras.Count; i++)
+                        {
+                            <tr>
+                                <td style="padding: 10px; width: 20%;">@(i + 1)</td>
+                                <td style="padding: 10px; width: 55%;">
+                                    @cameras[i].Name
+                                </td>
+                                <td style="padding: 10px;">
+                                    <a href="javascript:void(0);" class="btn btn-start btn-primary" style="padding: 5px 15px; width: 130px; margin-right:15px" onclick="openCameraModal('@cameras[i].Url', 1, this);">
+                                        Start
+                                    </a>
+                                    <a href="javascript:void(0);" class="btn btn-warning" style="padding: 5px 15px; width: 130px;" onclick="runAnnotationScript('@cameras[i].Url');">
+                                        Edit Zone
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 10px;">No Cameras available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="modal fade" id="cameraViewModal" tabindex="-1" role="dialog" aria-labelledby="cameraViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cameraViewModalLabel">Camera Stream</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <video id="cameraVideo" class="video-js vjs-default-skin" preload="auto" style="width: 100%; height: 100%;"></video>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ensure no further clicks of the Start button are possible PLEASEWORK -->
+    <script>
+        let stopAnalyzeVideo;
+
+        function openCameraModal(cameraUrl, checkPointId, button) {
+            button.classList.add('disabled');
+            button.style.pointerEvents = "none";
+            button.innerText = "Please wait...";
+
+            console.log("Camera URL: " + cameraUrl);
+            console.log("Checkpoint ID: " + checkPointId);
+
+            const video = document.getElementById('cameraVideo');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const canvas = document.createElement('canvas');
+
+            loadingMessage.style.display = 'block';
+
+            fetch(`/CarTailgating/StartCamera?cameraUrl=${encodeURIComponent(cameraUrl)}&checkPointId=${checkPointId}`, {
+                method: 'GET'
+            })
+                .then(async (response) => {
+                    if (response.ok) {
+                        if (Hls.isSupported()) {
+                            const hls = new Hls();
+                            hls.loadSource(`/stream/output_camera${checkPointId}.m3u8`);
+                            hls.attachMedia(video);
+                            let playbackStarted = false;
+                            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                                console.log("HLS manifest parsed, starting playback.");
+                                loadingMessage.style.display = 'none';
+                                resetButton(button);
+                                video.style.display = 'block';
+                                video.play();
+                                playbackStarted = true;
+
+                                stopAnalyzeVideo = analyzeVideo(video, canvas, cameraUrl);
+                            });
+                            hls.on(Hls.Events.ERROR, function (event, data) {
+                                console.error("HLS error:", data);
+                                loadingMessage.style.display = 'none';
+                                resetButton(button);
+                                if (!playbackStarted) {
+                                    alert("Camera is not connected. Please check the power supply or cable connection.");
+                                }
+                            });
+                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                            video.src = `/stream/output_camera${checkPointId}.m3u8`;
+                            console.log("Playing video using native HLS support.");
+                            loadingMessage.style.display = 'none';
+                            resetButton(button);
+                            video.style.display = 'block';
+                            video.play();
+
+                            stopAnalyzeVideo = analyzeVideo(video, canvas, cameraUrl);
+                        }
+                        $('#cameraViewModal').modal('show');
+                    } else {
+                        console.error("Error starting FFmpeg process.");
+                        loadingMessage.style.display = 'none';
+                        resetButton(button);
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                    loadingMessage.style.display = 'none';
+                    resetButton(button);
+                });
+        }
+
+        function resetButton(button) {
+            button.classList.remove('disabled');
+            button.style.pointerEvents = "auto";
+            button.innerText = "Start";
+        }
+
+        function analyzeVideo(video, canvas, cameraUrl, checkPointId) {
+            const context = canvas.getContext('2d');
+            let analysisComplete = false;
+
+            function checkFrame() {
+                if (analysisComplete) {
+                    console.log("Video analysis complete.");
+                    return;
+                }
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+                    let totalBrightness = 0;
+                    let edgeCount = 0;
+
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        const r = pixels[i];
+                        const g = pixels[i + 1];
+                        const b = pixels[i + 2];
+                        const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        totalBrightness += brightness;
+
+                        if (i < pixels.length - 4) {
+                            const nextBrightness = 0.299 * pixels[i + 4] + 0.587 * pixels[i + 5] + 0.114 * pixels[i + 6];
+                            if (Math.abs(brightness - nextBrightness) > 50) {
+                                edgeCount++;
+                            }
+                        }
+                    }
+
+                    const avgBrightness = totalBrightness / (pixels.length / 4);
+                    if (avgBrightness < 10) {
+                        alert("The camera view is dark. Please check the camera.");
+                        return;
+                    }
+                    console.log(edgeCount);
+                    const edgeThreshold = 2000;
+                    if (edgeCount < edgeThreshold) {
+                        alert("The camera view is blurry. Please check the camera.");
+                        return;
+                    }
+
+                    analysisComplete = true;
+                    sendCameraData(cameraUrl);
+                }
+
+                if (!analysisComplete) {
+                    requestAnimationFrame(checkFrame);
+                }
+            }
+            checkFrame();
+        }
+
+        async function sendCameraData(cameraUrl) {
+            console.log('URL to api:' + cameraUrl);
+            try {
+                // Send camera URL to the API
+                const response = await fetch('http://127.0.0.1:8001/start-tailgating-detection/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        // camera:  	"rtsp://admin:mquest_123@192.168.1.110:554/live"
+                         camera:  	"C:\\Users\\Jay\\Desktop\\video\\tailgating.mp4"
+                        // cameraUrl
+                    }),
+                });
+
+                if (response.ok) {
+                    console.log('API processing started successfully.');
+
+                    // Poll the API for detected events after starting the processing
+                    await pollForEvents();
+                } else {
+                    console.error(`Error: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error("Error sending camera data:", error);
+            }
+        }
+
+        //function to run the zone annotation script by sending the camera IP to the API
+        async function runAnnotationScript(cameraUrl) {
+            console.log('URL to API:', cameraUrl);
+            try {
+                // Send camera URL to the API
+                const response = await fetch('http://127.0.0.1:8002/annotate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        video_source: "rtsp://admin:mquest_123@192.168.1.110:554/live",
+                        timestamp: 0.0, // Optional: Adjust as needed
+                        save_path: "zones.json" // Optional: Adjust as needed
+                    }),
+                });
+
+                if (response.ok) {
+                    console.log('Annotation script started successfully.');
+                    alert('Annotation script started successfully.');
+                } else {
+                    const errorText = await response.text();
+                    console.error(`Failed to execute script: ${response.statusText}, Details: ${errorText}`);
+                    alert(`Failed to start annotation script: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error sending annotation request:', error);
+                alert('An error occurred while starting the annotation script.');
+            }
+        }
+
+        async function pollForEvents() {
+            try {
+                const eventsResponse = await fetch('http:127.0.0.1:8001/get-detection-results/');
+
+                if (eventsResponse.ok) {
+                    const eventsResult = await eventsResponse.json();
+                    if (eventsResult.message) {
+                        console.log(eventsResult.message);
+                        alert(`${eventsResult.message}`);
+                    }
+                } else {
+                    console.error(`Error fetching detected events: ${eventsResponse.statusText}`);
+                }
+
+            } catch (error) {
+                console.error("Error in polling for events:", error);
+            }
+
+            setTimeout(pollForEvents, 1000);
+        }
+
+
+
+        $(document).ready(function () {
+            $('#cameraViewModal').on('hidden.bs.modal', function () {
+                fetch(`/CarTailgating/StopCamera`, {
+                    method: 'GET'
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log("FFmpeg process stopped successfully.");
+                        } else {
+                            console.error("Error stopping FFmpeg process.");
+                        }
+                    })
+                    .catch(error => console.error("Fetch error:", error))
+                    .then(() => {
+                        // After stopping FFmpeg, stop the Python FastAPI video processing
+                        return fetch('http://127.0.0.1:8001/stop-tailgating-detection/', { method: 'GET' });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log("Python API stopped successfully.");
+                        } else {
+                            console.error("Error stopping Python API.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error stopping Python API:", error);
+                    })
+                    .finally(() => {
+                        console.log("All stop signals sent.");
+                    });
+
+                // Stop the video analysis
+                if (stopAnalyzeVideo) {
+                    stopAnalyzeVideo();
+                }
+            });
+        });
+
+        //Stop FFMpeg Processes
+        window.addEventListener("beforeunload", function (event) {
+            navigator.sendBeacon("/CarTailgating/StopStreaming");
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Libraries.ExtendedUserIdentity.Models.ViewModels.RoleViewModel
+
+@{
+    ViewBag.Title = "Role";
+    ViewBag.SubTitle = "Manage roles";
+}
+
+
+@section Styles{
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+}
+
+@section Scripts{
+    <script type="text/javascript">
+
+        if (typeof pms == 'undefined') pms = {};
+        if (typeof pms.keys == 'undefined') pms.keys = {};
+        if (typeof pms.keys.role == 'undefined') pms.keys.role = {};
+
+        pms.keys.role.view = '@AppModuleKeys.Role.ViewPrimaryKey'
+        pms.keys.role.removeRole = '@AppModuleKeys.Role.RemovePrimaryKey'
+        pms.keys.role.addRole = '@AppModuleKeys.Role.AddPrimaryKey'
+        pms.keys.role.manageRole = '@AppModuleKeys.Role.ManagePrimaryKey'
+        pms.keys.role.editRole = '@AppModuleKeys.Role.EditPrimaryKey'
+        pms.keys.role.addRoleAccess = '@AppModuleKeys.Role.AddRoleAccessPrimaryKey'
+        pms.keys.role.removeRoleAccess = '@AppModuleKeys.Role.RemoveRoleAccessPrimaryKey'
+        pms.keys.role.removeOwnershipAccess = '@AppModuleKeys.Role.RemoveOwnershipAccessPrimaryKey'
+
+        $(window).on("load", function () {
+            //pms.keys.role.removeRole = ''  //remove permission for delete role
+            //pms.keys.role.editRole = ''    //remove permission for edit role
+                    });
+
+    </script>
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.role.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+}
+
+
+<div id="mel-layer" style="display:none;">
+
+    <!-- ROLE VIEW -->
+    <div id="roles-view-grid" class="mel-section">
+        <div class="box box-info">
+            <div class="box-body">
+                <table id="role-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Name</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary pull-right" data-trigger="role-view-register" id="btn-add-role" data-permission-id="@AppModuleKeys.Role.AddPrimaryKey" data-permission-act="mel-enable|mel-disable">Create Role</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-register-role">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-register-role", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Create Role</h4>
+                    </div>
+                    <div class="modal-body">
+
+                        <!-- ROLE REGISTER -->
+                        <div id="role-view-register" class="mel-section">
+
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.Name, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-8">
+                                    @Html.TextBoxFor(m => m.Register.Name, new { @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Register.Name)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.StartActiveDate, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    @Html.EditorFor(m => m.Register.StartActiveDate, new { @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Register.StartActiveDate)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.EndActiveDate, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    @Html.EditorFor(m => m.Register.EndActiveDate, new { @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Register.EndActiveDate)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.IsActive, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    <div class="checkbox">
+                                        @Html.CheckBoxFor(m => m.Register.IsActive, new { @checked = "checked", id = "txt-register-role-isactive" })
+                                        <span class="error-block">@Html.ValidationMessageFor(m => m.Register.IsActive)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-edit-role">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-role", action = "#" }))
+                {
+
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Role</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!-- ROLE EDIT BY MODAL -->
+                        <div id="role-view-edit" class="mel-section">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.Name, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-8">
+                                    @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-role-edit-name", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.StartActiveDate, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    @Html.EditorFor(m => m.Manage.StartActiveDate, new { id = "txt-role-edit-startdate", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.StartActiveDate)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.EndActiveDate, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    @Html.EditorFor(m => m.Manage.EndActiveDate, new { id = "txt-role-edit-enddate", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.EndActiveDate)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.IsActive, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-8">
+                                    <div class="checkbox">
+                                        @Html.CheckBoxFor(m => m.Manage.IsActive, new { @checked = "checked", id = "txt-edit-role-isactive" })
+                                        <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.IsActive)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+
+    <!-- ROLE MANAGE -->
+    <div id="role-view-manage" class="mel-section">
+        <div class="box box-info">
+            <div class="box-header with-border">
+
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-manage-role", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="form-group">
+                        <label class="col-md-2 control-label">Access Right(s) for</label>
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-manage-role-name", disabled = "disabled", @class = "form-control", style = "display:inline-block;width:80%" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                        </div>
+                    </div>
+
+
+                    <div class="role-manage-detail" style="display:none;">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Manage.StartActiveDate, new { @class = "col-md-2 control-label" })
+                            <div class="col-md-10">
+                                @Html.EditorFor(m => m.Manage.StartActiveDate, new { @class = "form-control" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.StartActiveDate)</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Manage.EndActiveDate, new { @class = "col-md-2 control-label" })
+                            <div class="col-md-10">
+                                @Html.EditorFor(m => m.Manage.EndActiveDate, new { @class = "form-control" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.EndActiveDate)</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Manage.IsActive, new { @class = "col-md-2 control-label" })
+                            <div class="col-md-10">
+                                @Html.CheckBoxFor(m => m.Manage.IsActive, new { id = "txt-manage-role-isactive", @checked = "checked", @class = "form-control" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.IsActive)</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+
+            <div class="box-body">
+                <table id="module-accesslevel-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Module</th>
+                            <th>Access Level</th>
+                            <th>Granted By</th>
+                            <th>Granted Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" data-trigger="role-view-manage" id="btn-role-accessright-back">Back</button>
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="role-view-manage" id="btn-add-accessright" data-permission-id="@AppModuleKeys.Role.AddRoleAccessPrimaryKey" data-permission-act="mel-enable|mel-disable">Add Access Right</button>
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <div class="modal fade" id="modal-add-access-rights">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm("AddAccessRight", "Role", FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-access-rights", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Access Rights</h4>
+                    </div>
+                    <div class="modal-body">
+
+                        <!--ROLE ADD ACCESS RIGHT-->
+                        <div id="role-add-access-right" class="mel-section">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddAccessRight.ModulePvid, new { @class = "col-md-5 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.DropDownListFor(m => m.AddAccessRight.ModulePvid, (IEnumerable<SelectListItem>)new SelectList(Model.AddAccessRight.ModuleList, "Pvid", "Name"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddAccessRight.ModulePvid)</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddAccessRight.AccessLevelPvid, new { @class = "col-md-5 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.DropDownListFor(m => m.AddAccessRight.AccessLevelPvid, (IEnumerable<SelectListItem>)new SelectList(Model.AddAccessRight.AccessLevelList, "Pvid", "Name"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddAccessRight.AccessLevelPvid)</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+
+</div>
+

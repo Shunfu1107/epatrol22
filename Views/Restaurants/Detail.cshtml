@@ -1,0 +1,149 @@
+﻿@model AdminPortalV8.Models.Restaurant.RestaurantDetailModel
+
+@{
+    ViewBag.Title = "Detail";
+    ViewBag.SubTitle = "Detail Restaurant";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .control-data{
+        margin-top:5px;
+    }
+</style>
+
+<link rel="stylesheet" href="/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+<div class="box box-info">
+    <div class="box-body">
+        <h4>Restaurant Detail </h4>
+
+        <br>
+        <div class="form-horizontal">
+
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label col-md-2 required-field" })
+                <div class="col-md-10 control-data">
+                    @Html.Raw(Model.Name)
+                </div>
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.Address, htmlAttributes: new { @class = "control-label col-md-2 required-field" })
+                <div class="col-md-10 control-data">
+                    @Html.Raw(Model.Address)
+                </div>
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.StartDate, htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10 control-data">
+                    @Html.Raw(Model.StartDate)
+                </div>
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.Manager, htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10 control-data">
+                    @Html.Raw(Model.Manager)
+                </div>
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.Active, htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10 control-data">
+                    @if(Model.Active == true)
+                        @Html.Raw("Yes")
+                    else
+                        @Html.Raw("No")
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<div class="box box-solid">
+    <div class="box-header with-border">
+        <h3 class="box-title">Robots Information</h3>
+    </div>
+    <!-- /.box-header -->
+    <div class="box-body">
+        <table id="robots-table" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Serial Number</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Robots)
+                {
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@item.SerialNum</td>
+                        <td>
+                            @if(item.Active == true)
+                            {
+                                @Html.Raw("Active")
+                            }
+                            else
+                            {
+                                @Html.Raw("Inactive")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="box box-solid">
+    <div class="box-header with-border">
+        <h3 class="box-title">Anchors Information</h3>
+    </div>
+    <!-- /.box-header -->
+    <div class="box-body">
+        <table id="anchors-table" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Anchor Address</th>
+                    <th>X-Axis</th>
+                    <th>Y-Axis</th>
+                    <th>Main Anchor</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Anchors)
+                {
+                    <tr>
+                        <td>@item.Anchor_Address</td>
+                        <td>@item.X_Axis</td>
+                        <td>@item.Y_Axis</td>
+                        <td>
+                            @if(item.isMainAnchor == true)
+                            {
+                                @Html.Raw("Yes")
+                            }
+                            else
+                            {
+                                @Html.Raw("No")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<div class="box box-solid">
+    <div class="box-footer text-right">
+        @Html.ActionLink("Back to list", "Index", "Restaurants", null, new { @class = "btn btn-warning" })
+    </div>
+</div>
+

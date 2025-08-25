@@ -1,0 +1,739 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Libraries.ExtendedUserIdentity.Models.ViewModels.PortalAdminViewModel
+
+@{
+    ViewBag.Title = "Users";
+    ViewBag.SubTitle = "Manage Users";
+}
+
+@section Styles{
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+}
+
+@section scripts{
+    <script type="text/javascript">
+
+        if (typeof pms == 'undefined') pms = {};
+        if (typeof pms.keys == 'undefined') pms.keys = {};
+        if (typeof pms.keys.user == 'undefined') pms.keys.user = {};
+
+        pms.keys.user.view = '@AppModuleKeys.PortalAdmin.ViewPrimaryKey'
+        pms.keys.user.addUser = '@AppModuleKeys.PortalAdmin.AddPrimaryKey'
+        pms.keys.user.editUser = '@AppModuleKeys.PortalAdmin.EditPrimaryKey'
+        pms.keys.user.removeUser = '@AppModuleKeys.PortalAdmin.RemovePrimaryKey'
+        pms.keys.user.manageAccessRights = '@AppModuleKeys.PortalAdmin.ManageAccessRightsPrimaryKey'
+        pms.keys.user.removeRole = '@AppModuleKeys.PortalAdmin.RemoveRolePrimaryKey'
+        pms.keys.user.editExclusiveRight = '@AppModuleKeys.PortalAdmin.EditExclusiveAccessRightsPrimaryKey'
+        pms.keys.user.removeExclusiveRight = '@AppModuleKeys.PortalAdmin.RemoveExclusiveAccessRightsPrimaryKey'
+        pms.keys.user.removeRestaurant = '@AppModuleKeys.PortalAdmin.RemoveRestaurantPrimaryKey'
+
+        $(document).ready(function () {
+            var comments = document.getElementsByName('RegisterViewModel.Password');
+            var numComments = comments.length;
+            for (var i = 0; i < numComments; i++) {
+                var text = "To make your password more secure<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+
+                comments[i].setAttribute('data-content', text);
+                comments[i].setAttribute('data-toggle', 'popover');
+                comments[i].setAttribute('data-placement', 'right');
+                comments[i].addEventListener('focus', myFunction, false);
+                comments[i].addEventListener('keyup', textChange, false);
+                document.getElementsByName('RegisterViewModel.ConfirmPassword')[0].addEventListener('focus', myFunction2, false);
+
+            }
+
+            var comments2 = document.getElementsByName('ManageUserViewModel.Password');
+            var numComments2 = comments2.length;
+            for (var i = 0; i < numComments2; i++) {
+                var text = "To make your password more secure<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+
+                comments2[i].setAttribute('data-content', text);
+                comments2[i].setAttribute('data-toggle', 'popover');
+                comments2[i].setAttribute('data-placement', 'right');
+                comments2[i].addEventListener('focus', myFunction, false);
+                comments2[i].addEventListener('keyup', textChange2, false);
+                document.getElementsByName('ManageUserViewModel.ConfirmPassword')[0].addEventListener('focus', myFunction2, false);
+
+            }
+        });
+
+
+        function myFunction() {
+            $('[data-toggle="popover"]').popover({ html: true, placement: "bottom" });
+
+        }
+
+
+        function myFunction2() {
+            $('[data-toggle="popover"]').popover('hide');
+
+        }
+
+        function textChange() {
+            var text = "";
+            var a = 0, b = 0, c = 0, d = 0, e = 0;
+            var textVal = document.getElementsByName("RegisterViewModel.Password")[0].value;
+            text = "To make your password more secure<br>";
+            if (textVal.match(/[a-z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one lowercase <br>";
+                if (b == 0) {
+                    a = a + 1;
+                    b = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+            }
+
+            if (textVal.match(/[A-Z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one uppercase <br>";
+
+                if (c == 0) {
+                    a = a + 1;
+                    c = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+            }
+
+            if (/\d/.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one number <br>";
+                if (d == 0) {
+                    a = a + 1;
+                    d = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+            }
+
+            var format = /[ !@@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+            if (format.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                if (e == 0) {
+                    a = a + 1;
+                    e = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+            }
+
+            if (textVal.length >= 8) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password length at least 8 characters <br>";
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+            }
+
+            if (a >= 3 && textVal.length >= 8) {
+                text = "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password is secure<br>";
+            }
+
+
+
+
+            document.getElementsByName('RegisterViewModel.Password')[0].setAttribute('data-content', text);
+            $('[data-toggle="popover"]').popover('show');
+        }
+
+            function textChange2() {
+            var text = "";
+            var a = 0, b = 0, c = 0, d = 0, e = 0;
+            var textVal = document.getElementsByName("ManageUserViewModel.Password")[0].value;
+            text = "To make your password more secure<br>";
+            if (textVal.match(/[a-z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one lowercase <br>";
+                if (b == 0) {
+                    a = a + 1;
+                    b = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one lowercase <br>";
+            }
+
+            if (textVal.match(/[A-Z]/)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one uppercase <br>";
+
+                if (c == 0) {
+                    a = a + 1;
+                    c = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one uppercase <br>";
+            }
+
+            if (/\d/.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use at least one number <br>";
+                if (d == 0) {
+                    a = a + 1;
+                    d = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use at least one number <br>";
+            }
+
+            var format = /[ !@@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+            if (format.test(textVal)) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+                if (e == 0) {
+                    a = a + 1;
+                    e = 1;
+                }
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Use special characters (e.g. !, #, $, % and etc)<br>";
+            }
+
+            if (textVal.length >= 8) {
+                text += "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password length at least 8 characters <br>";
+            }
+            else {
+                text += "<span class='glyphicon glyphicon-remove' style='color:red'></span> Password length at least 8 characters <br>";
+            }
+
+            if (a >= 3 && textVal.length >= 8) {
+                text = "<span class='glyphicon glyphicon-ok' style='color:green'></span> Password is secure<br>";
+            }
+
+
+
+
+            document.getElementsByName('ManageUserViewModel.Password')[0].setAttribute('data-content', text);
+            $('[data-toggle="popover"]').popover('show');
+        }
+
+    </script>
+
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.portaladmin.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+
+}
+
+
+<div id="mel-layer" style="display:none;">
+
+    <!-- USER LIST -->
+    <div id="users-view-grid" class="mel-section ">
+        <div class="box box-info">
+            <div class="box-body table-responsive">
+                <table id="users-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            @* <th>NRIC</th>
+                            <th>Mobile No</th> *@
+                            <th>Username</th>
+                            <th>Receive Email</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="box-footer text-right">
+            <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="users-view-register" id="btn-add-user" data-permission-id="@AppModuleKeys.PortalAdmin.AddPrimaryKey" data-permission-act="mel-enable|mel-disable">Create User</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- USER REGISTRATION -->
+    <div id="users-view-register" class="mel-section">
+        <div class="box box-info">
+
+            @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { id = "form-register", @class = "form-horizontal", action = "#", role = "form" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="box-body">
+
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.Name, new { @class = "col-md-2 control-label required-field" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.RegisterViewModel.Name, new { id = "txt-name", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.Name)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.Email, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.RegisterViewModel.Email, new { id = "txt-email", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.Email)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.UserName, new { @class = "col-md-2 control-label required-field" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.RegisterViewModel.UserName, new { id = "txt-username", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.UserName)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.Password, new { @class = "col-md-2 control-label required-field" })
+                        <div class="col-md-10">
+                            @Html.PasswordFor(m => m.RegisterViewModel.Password, new { id = "txt-password", @class = "form-control password" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.Password)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.ConfirmPassword, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.PasswordFor(m => m.RegisterViewModel.ConfirmPassword, new { @class = "form-control password" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.ConfirmPassword)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.RegisterViewModel.ReceivedEmail, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            <div class="checkbox">
+                                @Html.CheckBoxFor(m => m.RegisterViewModel.ReceivedEmail, new { id = "chk-rg-usr" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.RegisterViewModel.ReceivedEmail)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="box-footer text-right">
+                    <button type="button" class="btn btn-warning" id="btn-register-cancel">Back</button>
+                    <button type="button" id="btn-register-user" class="btn btn-primary">Create</button>
+                </div>
+
+            }
+        </div>
+    </div>
+
+    <!-- EDIT USER -->
+    <div id="users-view-edit" class="mel-section">
+        <div class="box box-info">
+
+            @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-user", action = "#" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="box-body">
+
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.Name, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.ManageUserViewModel.Name, new { id = "txt-edit-name", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.Name)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.Email, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.ManageUserViewModel.Email, new { id = "txt-edit-email", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.Email)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.UserName, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.ManageUserViewModel.UserName, new { id = "txt-edit-username", @class = "form-control" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.UserName)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.Password, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.PasswordFor(m => m.ManageUserViewModel.Password, new { id = "txt-edit-password", @class = "form-control password" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.Password)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.ConfirmPassword, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            @Html.PasswordFor(m => m.ManageUserViewModel.ConfirmPassword, new { @class = "form-control password" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.ConfirmPassword)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.Active, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            <div class="checkbox">
+                                @Html.CheckBoxFor(m => m.ManageUserViewModel.Active, new { id = "chk-ed-act" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.Active)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ManageUserViewModel.ReceivedEmail, new { @class = "col-md-2 control-label" })
+                        <div class="col-md-10">
+                            <div class="checkbox">
+                                @Html.CheckBoxFor(m => m.ManageUserViewModel.ReceivedEmail, new { id = "chk-ed-usr" })
+                                <span class="error-block">@Html.ValidationMessageFor(m => m.ManageUserViewModel.ReceivedEmail)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="box-footer text-right">
+                    <button type="button" class="btn btn-warning" id="btn-edit-cancel">Back</button>
+                    <button type="button" id="btn-edit-user" class="btn btn-primary">Save</button>
+                </div>
+            }
+
+        </div>
+    </div>
+
+    <!-- MANAGE USER ACCESS RIGHT-->
+    <div id="users-view-accessrights" class="mel-section">
+
+        <div class="box box-info">
+            <div class="box-header with-border">
+
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-manage-role", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="form-group">
+                        <label class="col-md-2 control-label">List role granted for</label>
+                        <div class="col-md-10">
+                            <span class="form-control" disabled="disabled" id="lb-user-name" style="display:inline-block;width:80%"></span>
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+
+        </div>
+
+        <div class="box box-solid">
+            <div class="box-header with-border">
+                <h3 class="box-title">Role Granted</h3>
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body">
+                <table id="users-accessrights-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Role Name</th>
+                            <th>Start Active Date</th>
+                            <th>End Active Date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="users-view-accessrights" id="btn-add-role" data-permission-id="@AppModuleKeys.PortalAdmin.AddRolePrimaryKey" data-permission-act="mel-enable|mel-disable">Add Role</button>
+            </div>
+        </div>
+
+
+        <div class="box box-solid">
+            <div class="box-header with-border">
+                <h3 class="box-title">Exclusive Access Rights Status</h3>
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body">
+                <table id="users-exclusiveaccess-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Action</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="users-view-accessrights" id="btn-add-exclusive-rights" data-permission-id="@AppModuleKeys.PortalAdmin.AddExclusiveAccessRightsPrimaryKey" data-permission-act="mel-enable|mel-disable">Add Access Rights</button>
+            </div>
+        </div>
+
+        <div class="box box-solid">
+            <div class="box-header with-border">
+                <h3 class="box-title">Restaurant Granted</h3>
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body">
+                <table id="users-restaurant-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Restaurant Name</th>
+                            <th>Start Active Date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="users-view-accessrights" id="btn-add-restaurant" data-permission-id="@AppModuleKeys.PortalAdmin.AddRestaurantPrimaryKey" data-permission-act="mel-enable|mel-disable">Add Restaurant</button>
+            </div>
+        </div>
+
+
+        <div class="box box-solid">
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" id="btn-back-role">Back</button>
+            </div>
+            <!-- /.box-body -->
+        </div>
+
+    </div>
+
+
+    <div class="modal fade" id="modal-add-exclusive">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-exclusive", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Exclusive Access</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!--ADD EXCLUSIVE ACCESS BY MODAL-->
+                        <div id="user-add-exclusive" class="mel-section no-close">
+
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddExclusiveAccess.PermissionKey, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-7">
+                                    @(Html.TextBoxFor(m => m.AddExclusiveAccess.PermissionKey, new { @readonly = "readonly", id = "txt-access-selected", @class = "form-control col-md-10" }))
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddExclusiveAccess.PermissionKey)</span>
+                                </div>
+                                <i id="btn-access-find" class="fa fa-plus-circle col-md-0 dialog-search-icon"></i>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddExclusiveAccess.Accessible, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.DropDownListFor(m => m.AddExclusiveAccess.Accessible, (IEnumerable<SelectListItem>)new SelectList(Model.AddExclusiveAccess.Accessibles, "Value", "Title"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddExclusiveAccess.Accessible)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-edit-exclusive">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-exclusive", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Exclusive Access</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!--ADD EXCLUSIVE ACCESS BY MODAL-->
+                        <!--EDIT EXCLUSIVE ACCESS BY MODAL-->
+                        <div id="user-edit-exclusive" class="mel-section">
+
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.EditExclusiveAccess.PermissionKey, new { @class = "col-md-4 control-label" })
+                                <div class="col-md-7">
+                                    @(Html.TextBoxFor(m => m.EditExclusiveAccess.PermissionKey, new { @readonly = "readonly", id = "txt-edit-access-selected", @class = "form-control col-md-10" }))
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.EditExclusiveAccess.PermissionKey)</span>
+                                </div>
+                                <i id="btn-edit-access-find" class="fa fa-plus-circle col-md-0"></i>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.EditExclusiveAccess.Accessible, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.DropDownListFor(m => m.EditExclusiveAccess.Accessible, (IEnumerable<SelectListItem>)new SelectList(Model.EditExclusiveAccess.Accessibles, "Value", "Title"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.EditExclusiveAccess.Accessible)</span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-view-manage-permission">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Select a access right</h4>
+                </div>
+                <div class="modal-body">
+
+                    <!--ACCESSLEVEL ADD PERMISSION-->
+                    <div id="module-view-manage-permission" class="mel-section">
+                        <div class="ui-dialog-search-permission form-group">
+                            <label class="control-label" for="cmb-module-selection">Module</label>
+                            <select class="dropdownlistStyle form-control" id="cmb-module-selection"></select>
+                        </div>
+                        <br />
+                        <table id="permission-new-table" class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>S/N</th>
+                                    <th>Action</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                        </table>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-add-role">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-role", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add User Role</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!--ADD USER ROLE FORM MODAL-->
+                        <div id="user-add-role" class="mel-section no-close">
+
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddUserRole.RolePvid, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-8">
+                                    @Html.DropDownListFor(m => m.AddUserRole.RolePvid, (IEnumerable<SelectListItem>)new SelectList(Model.AddUserRole.Roles, "Id", "Name"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddUserRole.RolePvid)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-add-rest">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-add-rest", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Add Restaurant</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!--ADD USER ROLE FORM MODAL-->
+                        <div id="user-add-rest" class="mel-section no-close">
+
+                            @Html.HiddenFor(m=>m.AddUserRestaurant.userId)
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.AddUserRestaurant.restaurantId, new { @class = "col-md-4 control-label required-field" })
+                                <div class="col-md-8">
+                                    @Html.DropDownListFor(m => m.AddUserRestaurant.restaurantId, (IEnumerable<SelectListItem>)new SelectList(Model.AddUserRestaurant.RestaurantList, "Id", "Name"), new { @class = "dropdownlistStyle form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.AddUserRestaurant.restaurantId)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+</div>

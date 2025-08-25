@@ -1,0 +1,430 @@
+﻿@{
+    ViewBag.Title = "Patrolling";
+}
+@model AdminPortalV8.ViewModels.PatrollingViewModel
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patrolling</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        .row {
+            margin: 0;
+        }
+
+        /* Floor Map */
+        .col-md-6 img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border: 1px solid #ccc;
+        }
+
+        /* Camera icon on floor map */
+        .camera-icon {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            cursor: pointer;
+        }
+
+            .camera-icon.active {
+                border: 3px solid green;
+                border-radius: 50%;
+            }
+
+        /* Video styling */
+        .video-container video {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+
+        /* Right section (video + checklist) */
+        .checkpoint-pane {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body style="top:0;">
+    <div class="container-fluid" style="padding: 20px;">
+        <input type="hidden" id="routeId" value="@Model.RouteId" />
+        <h2>@Model.RouteName</h2>
+
+        <div class="row">
+            <!-- Floor Map with camera icons -->
+            <div class="col-md-6">
+                <div id="floorMapContainer" style="position: relative;">
+                    <img id="floorMapImage" src="data:image/jpeg;base64,@Model.MapBase64" alt="Floor Map" style="width: 100%; height: auto;">
+                </div>
+                <div class="form-group" style="margin-top:10px">
+                    <label for="floorSelector">Floor</label>
+                    <select id="floorSelector" class="form-control" style="max-width:260px"></select>
+                </div>
+            </div>
+
+            <!-- Video and checklist content -->
+            <div class="col-md-6">
+                @for (int i = 0; i < Model.Checkpoints.Count; i++)
+                {
+                    var checkpoint = Model.Checkpoints[i];
+                    var isVisible = i == 0 ? "block" : "none";
+                    <div class="checkpoint-pane" id="checkpointPane_@i" data-cp-id="@checkpoint.CheckpointId" data-cp-name="@checkpoint.CheckpointName" data-floor-id="@checkpoint.FloorId" data-floor-name="@checkpoint.FloorName" style="display:@isVisible;">
+                        <h4>Check Point: @checkpoint.CheckpointName</h4>
+
+                        <div class="video-container">
+                            <video id="live-stream-@i" class="video-js vjs-default-skin" autoplay muted></video>
+                        </div>
+
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Checklist</th>
+                                    <th>Status</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var checklist in checkpoint.Checklists)
+                                {
+                                    var name = $"checklist_{checkpoint.CheckpointId}_{checklist.ChecklistId}";
+                                    <tr>
+                                        <td>@checklist.ChecklistName</td>
+                                        <td>
+                                            <input type="radio" name="@name" value="Yes" /> Yes
+                                            <input type="radio" name="@name" value="No" /> No
+                                        </td>
+                                        <td>
+                                            <input type="text" name="note_@name" class="form-control" placeholder="Add a note (optional)" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <button id="finishPatrol" class="btn btn-primary">Finish Patrol</button>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+        $(document).ready(function () {
+            @using Newtonsoft.Json
+            let checkpoints = @Html.Raw(JsonConvert.SerializeObject(Model.Checkpoints));
+
+
+            // Init HLS video for each checkpoint
+            checkpoints.forEach((checkpoint, index) => {
+                let videoElement = document.getElementById(`live-stream-${index}`);
+                let videoSrc = `/stream/output_camera${checkpoint.CheckpointId}.m3u8`;
+
+                if (Hls.isSupported()) {
+                    let hls = new Hls();
+                    hls.loadSource(videoSrc);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                        videoElement.play();
+                    });
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElement.src = videoSrc;
+                    videoElement.addEventListener('loadedmetadata', function () {
+                        videoElement.play();
+                    });
+                }
+            });
+
+            // Camera icon click to switch pane
+            $('.camera-icon').click(function () {
+                const index = $(this).data('checkpoint-index');
+                $('.checkpoint-pane').hide();
+                $('#checkpointPane_' + index).show();
+            });
+
+            function showCheckpointPaneByIndex(index) {
+                $('.checkpoint-pane').hide();
+                const $target = $('#checkpointPane_' + index).show();
+
+                const floorIdAttr = $target.attr('data-floor-id');
+                const targetFloorId = floorIdAttr ? parseInt(floorIdAttr, 10) : null;
+
+                if (targetFloorId != null && !Number.isNaN(targetFloorId) && currentFloorId !== targetFloorId) {
+                    currentFloorId = targetFloorId;
+
+                    const sel = document.getElementById('floorSelector');
+                    if (sel) sel.value = currentFloorId;
+                    setFloorMap(currentFloorId); // will redraw icons & highlight
+                } else if (typeof drawCameraIconsOnFloorMap === 'function') {
+                    // same floor: just refresh highlight
+                    drawCameraIconsOnFloorMap();
+                }
+
+                return $target;
+            }
+
+            // Finish patrol logic
+            $('#finishPatrol').off('click').on('click', function () {
+                let checklistData = [];
+                let firstIncomplete = null; // {index, $row}
+
+                $('.checkpoint-pane').each(function () {
+                    const $cpPane = $(this);
+                    const cpName  = $cpPane.data('cp-name') || $cpPane.find('h4').text().trim();
+
+                    $cpPane.find('tbody tr').each(function () {
+                        const $row = $(this);
+                        const $radios = $row.find('input[type=radio]');
+                        const $checked = $radios.filter(':checked');
+
+                        const nameAttr = $radios.first().attr('name') || '';
+                        const parts = nameAttr.split('_'); // ["checklist", cpId, checklistId]
+                        const checkpointId = parts[1] || '';
+                        const checklistId  = parts[2] || '';
+                        const note = $row.find('input[type=text]').val() || '';
+                        const checklistName = $row.find('td').first().text().trim();
+
+                        if ($checked.length === 0) {
+                            if (!firstIncomplete) {
+                                const cpIndex = ($cpPane.attr('id') || '').split('_')[1]; // "checkpointPane_0" -> "0"
+                                firstIncomplete = { index: cpIndex, $row };
+                            }
+                            $row.css('background-color', '#ffcccc');
+                            return;
+                        } else {
+                            $row.css('background-color', '');
+                           
+                            const rawVal = $checked.val();
+                            const status = (rawVal === 'Yes' || rawVal === '1' || rawVal === 1 || rawVal === true) ? 1 : 0;
+
+                            checklistData.push({
+                                ChecklistId: checklistId,
+                                Status: status, 
+                                Note: note,
+                                CheckPointName: cpName,
+                                CheckListName: checklistName
+                            });
+                        }
+                    });
+                });
+
+                if (firstIncomplete) {
+                    alert('Please complete all checklist items.');
+                    const $pane = showCheckpointPaneByIndex(firstIncomplete.index);
+                    if (firstIncomplete.$row && firstIncomplete.$row.length) {
+                        firstIncomplete.$row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+
+                const rid = parseInt($('#routeId').val(), 10);
+
+                const normalized = checklistData.map(x => {
+                  const yes = (x.Status === 1 || x.Status === "1" || x.Status === true || x.Status === "Yes");
+                  const statusStr = yes ? "Yes" : "No";
+                  return {
+                    checklistId: x.ChecklistId,
+                    checkPointName: x.CheckPointName,
+                    checkListName: x.CheckListName,
+                    status: statusStr,
+                    note: x.Note ?? "",
+                    ChecklistId: x.ChecklistId,
+                    CheckPointName: x.CheckPointName,
+                    CheckListName: x.CheckListName,
+                    Status: statusStr,
+                    Note: x.Note ?? ""
+                  };
+                });
+
+                const payload = {
+                  routeId: rid, RouteId: rid,
+                  guardName: "@User.Identity.Name", GuardName: "@User.Identity.Name",
+                  checklists: normalized, Checklists: normalized
+                };
+
+                $.ajax({
+                    type: "POST",
+                    url: '@Url.Action("SavePatrol", "Patrolling")',
+                    data: JSON.stringify(payload),
+                    contentType: "application/json",
+                    success: function () {
+                        alert("Patrol data saved.");
+                        location.href = '@Url.Action("PatrolDone", "Patrolling")';
+                    },
+                    error: function (xhr, status, error) {
+                       console.error('SavePatrol error:', xhr.status, xhr.responseText);
+                        alert("Error saving patrol: " + (xhr.responseText || xhr.statusText || 'Unknown'));
+                    }
+                });
+            }); 
+        });
+        </script>
+    }
+    <script>
+        const FLOORS = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.Floors ?? new object[0]));
+        const mapPoints = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CheckpointsWithCoordinates ?? new object[0]));
+
+        let currentFloorId = null;
+
+        function initFloorSelector() {
+            const sel = document.getElementById('floorSelector');
+            if (!sel) return;
+
+            sel.innerHTML = '';
+            FLOORS.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.FloorId;
+                opt.textContent = `${f.FloorName}  --  Level: ${f.Level}`;
+                sel.appendChild(opt);
+            });
+
+            if (FLOORS.length > 0) {
+                currentFloorId = FLOORS[0].FloorId;
+                sel.value = currentFloorId;
+                setFloorMap(currentFloorId);
+            } else {
+                const group = sel.closest('.form-group');
+                if (group) group.style.display = 'none';
+            }
+
+            sel.addEventListener('change', (e) => {
+                currentFloorId = parseInt(e.target.value, 10);
+                setFloorMap(currentFloorId);
+            });
+        }
+
+        function setFloorMap(floorId) {
+            const img = document.getElementById('floorMapImage');
+            const f = FLOORS.find(x => x.FloorId == floorId);
+            img.src = f && f.MapBase64 ? ('data:image/jpeg;base64,' + f.MapBase64) : '';
+
+            if (img.complete && img.naturalWidth > 0) {
+                drawCameraIconsOnFloorMap();
+            } else {
+                img.onload = () => drawCameraIconsOnFloorMap();
+            }
+        }
+
+        function drawCameraIconsOnFloorMap() {
+            const mapImg = document.getElementById("floorMapImage");
+            const container = document.getElementById("floorMapContainer");
+
+            if (!mapImg || !container || !mapPoints?.length) return;
+
+            container.querySelectorAll(".camera-icon").forEach(el => el.remove());
+
+            const imgNaturalWidth = mapImg.naturalWidth;
+            const imgNaturalHeight = mapImg.naturalHeight;
+            const imgDisplayWidth = mapImg.clientWidth;
+            const imgDisplayHeight = mapImg.clientHeight;
+
+            const scaleX = imgDisplayWidth / imgNaturalWidth;
+            const scaleY = imgDisplayHeight / imgNaturalHeight;
+
+            const points = (currentFloorId == null)
+            ? mapPoints
+            : mapPoints.filter(p => p.FloorId == currentFloorId);
+
+            points.forEach(cp => {
+                const x = parseFloat(cp.X || 0);
+                const y = parseFloat(cp.Y || 0);
+
+                if (x === 0 && y === 0) return;
+
+                const displayX = x * scaleX;
+                const displayY = y * scaleY;
+
+                const icon = document.createElement("img");
+                icon.src = "/Images/cam.jpg";
+                icon.className = "camera-icon";
+                icon.style.position = "absolute";
+                icon.style.width = "24px";
+                icon.style.height = "24px";
+                icon.style.left = `${displayX - 12}px`; // center align
+                icon.style.top = `${displayY - 12}px`;
+                icon.style.cursor = "pointer";
+                icon.title = cp.CheckpointName;
+                icon.setAttribute("data-checkpoint-index", cp.Index);
+
+                // Inside drawCameraIconsOnFloorMap
+                const currentVisiblePane = document.querySelector(".checkpoint-pane:not([style*='display: none'])");
+                const currentIndex = currentVisiblePane?.id?.split("_")[1]; // checkpointPane_0 → "0"
+
+                // For each camera icon:
+                if (cp.Index.toString() === currentIndex) {
+                    icon.classList.add("active"); // ✅ highlight
+                }
+
+                icon.onclick = () => {
+                    if (typeof cp.FloorId !== "undefined" && currentFloorId != cp.FloorId) {
+                        currentFloorId = cp.FloorId;
+                        const sel = document.getElementById('floorSelector');
+                        if (sel) sel.value = currentFloorId;
+                        setFloorMap(currentFloorId);
+                    }
+
+                    document.querySelectorAll(".checkpoint-pane").forEach(p => p.style.display = "none");
+                    document.getElementById(`checkpointPane_${cp.Index}`).style.display = "block";
+
+                    drawCameraIconsOnFloorMap();
+                };
+
+                container.appendChild(icon);
+            });
+        }
+
+        window.onload = function () {
+            initFloorSelector();
+
+            const firstVisiblePane = document.querySelector(".checkpoint-pane:not([style*='display: none'])");
+            if (firstVisiblePane) {
+              const idx = firstVisiblePane.id.split("_")[1];
+              const cp = mapPoints.find(p => p.Index == idx);
+              if (cp && FLOORS.some(f => f.FloorId == cp.FloorId)) {
+                currentFloorId = cp.FloorId;
+                const sel = document.getElementById('floorSelector');
+                if (sel) sel.value = currentFloorId;
+                setFloorMap(currentFloorId);
+              }
+            }
+
+            const img = document.getElementById("floorMapImage");
+
+            function tryDrawIcons() {
+                if (img.complete && img.naturalWidth !== 0) {
+                    drawCameraIconsOnFloorMap();
+                } else {
+                    img.onload = drawCameraIconsOnFloorMap;
+                }
+            }
+
+            tryDrawIcons();
+
+            // Double check fallback after slight delay (in case layout still processing)
+            setTimeout(tryDrawIcons, 500);
+
+            window.addEventListener("resize", drawCameraIconsOnFloorMap);
+        };
+
+
+        window.addEventListener("beforeunload", function (event) {
+            navigator.sendBeacon("/AutoPatrolling/StopStreaming");
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+</html>

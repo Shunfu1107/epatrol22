@@ -1,0 +1,943 @@
+﻿@{
+    ViewBag.Title = "Camera1";
+}
+@{
+    var cameras = ViewBag.Cameras as List<AdminPortalV8.Models.Epatrol.Camera>;
+    var locations = ViewBag.Locations as List<AdminPortalV8.Models.Epatrol.Location>;
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    @* <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> *@
+
+    @* <!--Bootstrap 5 icons CDN--> *@
+    @* <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> *@
+
+
+    <!--Font Style-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!--CSS Style-->
+    <link rel="stylesheet" href="/css/site.css" />
+
+    <title>CRUD Operations</title>
+
+    <script src="~/js/script.js"></script>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="header-container">
+            <h3>Camera List</h3>
+            <div class="row">
+                <div>
+                    <button id="showResultsButton" class="btn btn-primary">
+                        Show Camera Check Results
+                    </button>
+                    <button id="checkAllCamerasButton" onclick="openNotificationModal()" class="btn btn-primary">
+                        Check All Cameras
+                    </button>
+                    <button id="addCamera" data-toggle="modal" data-target="#addCameraModal" class="btn btn-primary">
+                        Add New Camera
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <div class="container-fluid">
+        <div class="table-responsive">
+            <table id="camera-table" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="styled-checkbox">No.</th>
+                        <th>Camera Name</th>
+                        <th>Image</th>
+                        <th>Camera URL</th>
+                        <th>Created At</th>
+                        <th>Connectivity </th>
+                        <th>Location </th>
+                        <th>Level </th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    @section scripts {
+@*         <link rel="stylesheet" href="/Datatables/datatables.min.css">
+        <script src="/Datatables/datatables.min.js"></script> *@
+        <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+        <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+        @* <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+         <script src="https:cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script> *@
+
+        <script>
+            $(document).ready(function () {
+                bindDatatable();
+            });
+
+            function bindDatatable() {
+                $('#camera-table').DataTable({
+                    "processing": true,
+                    "serverSide": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": "/Camera1/GetCameraData",
+                        "type": "GET",
+                        "data": function (d) {   // ✅ Take user input for searching
+                            d.search = d.search.value;
+                            d.orderColumn = d.order[0].column; // Send sorting column index
+                            d.orderDir = d.order[0].dir;       // Send sorting direction
+                        },
+                        "dataSrc": "data"
+                    },
+                    // "order": [],
+                    "columnDefs": [
+                      { "orderable": false, "targets": [0, 2, 8] }
+                    ],
+                    "order": [[6, 'desc']],
+                    "language": {
+                        "emptyTable": "No record found.",
+                        "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i> Loading...'
+                    },
+                    "columns": [
+                        {
+                            "data": null,
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            },
+                            "orderable": false
+                        },
+                        {
+                            "data": "name",
+                            "autoWidth": true
+                        },
+                        {
+                            "data": "cameraImage",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                if (data) {
+                                    return `<div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; margin:auto;">
+                                                <img src="data:image/jpeg;base64,${data}" style="object-fit: contain; max-width: 100%; max-height: 100%;"/>
+                                            </div>`; // Centers the image in the box
+                                } else {
+                                    return '<span>No Image</span>';
+                                }
+                            }
+                        },
+                        {
+                            "data": "url",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                return `
+                                    <span>${data}</span>
+                                    <span onclick="copyToClipboard('${data}')" style="cursor: pointer; font-size: 1.5em; margin-left: 8px;">📋</span>
+                                `;
+                            }
+                        },
+                        {
+                            "data": "createdAt",
+                            "autoWidth": true
+                        },
+                        {
+                            "data": "isActive",
+                            "autoWidth": true,
+                            "render": function (data) {
+                                return data
+                                    ? '<span style="color: green; font-weight: bold;">ON</span>'
+                                    : '<span style="color: red; font-weight: bold;">OFF</span>';
+                            }
+                        },
+                        {
+                            "data": "locationName",
+                            "autoWidth": true,
+                            "render": function(data) {
+                                return data || 'N/A';
+                            }
+                        },
+                        {
+                            "data": "locationLevel",
+                            "autoWidth": true,
+                            "render": function(data) {
+                                return data || 'N/A';
+                            }
+                        },
+                        {
+                            "data": null,
+                            "orderable": false,
+                            "render": function (data, type, row) {
+                                return `
+                                    <button class="btn btn-info btn-sm" style="margin-bottom: 8px;"
+                                        data-id="${row.cameraId}"
+                                        data-name="${row.name}"
+                                        data-url="${row.url}"
+                                        data-camera-image="${row.cameraImage || ''}"
+                                        data-location-name="${row.locationName || ''}"
+                                        data-location-level="${row.locationLevel || ''}"
+                                        onclick="viewCamera(this)"><i class="fas fa-eye"></i> View</button>
+                                    <button class="btn btn-warning btn-sm"  style="margin-bottom: 8px;"
+                                        data-id="${row.cameraId}"
+                                        data-name="${row.name}"
+                                        data-url="${row.url}"
+                                        data-camera-image="${row.cameraImage || ''}"
+                                        data-location-name="${row.locationName || ''}"
+                                        data-location-level="${row.locationLevel || ''}"
+                                        onclick="editCamera(this)"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn btn-danger btn-sm"
+                                        data-id="${row.cameraId}"
+                                        data-name="${row.name}"
+                                        onclick="deleteCamera(this)"><i class="fas fa-trash"></i> Delete</button>
+                                `;
+                            }
+                        }
+                    ]
+                });
+            }
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast("Copied!", "green"))  // ✅ Green for success
+                    .catch(() => showToast("Failed to copy", "red")); // ❌ Red for failure
+            }
+
+            function showToast(message, bgColor) {
+                let toast = document.createElement("div");
+                Object.assign(toast.style, {
+                    position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)",
+                    background: bgColor, color: "white", padding: "10px 20px", borderRadius: "5px",
+                    fontSize: "14px", zIndex: "1000", opacity: "0.9", transition: "opacity 0.5s"
+                });
+                toast.innerText = message;
+                document.body.appendChild(toast);
+                setTimeout(() => (toast.style.opacity = "0"), 1000);
+                setTimeout(() => document.body.removeChild(toast), 1500);
+            }
+
+            // function editCamera(button) {
+            //     var cameraId = $(button).data('id');
+            //     var cameraName = $(button).data('name');
+            //     var cameraUrl = $(button).data('url');
+            //     var cameraImage = $(button).data('cameraImage');  Assuming the image data is base64 encoded
+
+            //     Populate the modal fields
+            //     $('#editCameraModal').find('#editCameraId').val(cameraId);
+            //     $('#editCameraModal').find('#editCameraName').val(cameraName);
+            //     $('#editCameraModal').find('#editCameraUrl').val(cameraUrl);
+
+            //     console.log("selected " , cameraId + cameraName);
+
+            //     If the camera image is available, set the image preview
+            //     if (cameraImage) {
+            //         $('#editCameraModal').find('#imagePreview').attr('src', 'data:image/jpeg;base64,' + cameraImage).show();
+            //     } else {
+            //         $('#editCameraModal').find('#imagePreview').hide();
+            //     }
+
+            //     Open the modal
+            //     $('#editCameraModal').modal('show');
+            // }
+
+            function deleteCamera(button) {
+                var cameraId = $(button).data('id');
+                var cameraName = $(button).data('name');
+
+                // Set the ID in the hidden input field
+                $('#deleteCameraModal').find('#deleteCameraId').val(cameraId);
+                $('#deleteCameraModal').find('#deleteCameraName').val(cameraName);
+
+                // Update the modal body text to include the Camera Name
+                $('#deleteCameraModal .modal-body p').html(`Are you sure you want to delete this camera: <strong>${cameraName}</strong>?`);
+
+                // Show the delete confirmation modal
+                $('#deleteCameraModal').modal('show');
+            }
+
+        </script>
+    }
+
+    <!-- Check Camera Result -->
+    <div class="modal fade" id="cameraCheckResultsModal" tabindex="-1" role="dialog" aria-labelledby="resultsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" id="cameraCheckResults">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resultsModalLabel">Camera Check Results</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="container">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input id="filterCameraName" type="text" class="form-control" placeholder="Search by Camera Name" />
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="resetFilter('filterCameraName')">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <select id="filterStatus" class="form-control">
+                                    <option value="">Filter by Status</option>
+                                    <option value="Working">Working</option>
+                                    <option value="Not Working">Not Working</option>
+                                    <option value="Dark">Dark</option>
+                                    <option value="Blurry">Blurry</option>
+                                </select>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="resetFilter('filterStatus')">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="filterStartDate" class="form-label">Start Date:</label>
+                            <div class="input-group">
+                                <input id="filterStartDate" type="date" class="form-control" />
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="resetFilter('filterStartDate')">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="filterEndDate" class="form-label">End Date:</label>
+                            <div class="input-group">
+                                <input id="filterEndDate" type="date" class="form-control" />
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="resetFilter('filterEndDate')">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end" style="text-align: right;">
+                            <button id="applyFiltersButton" class="btn btn-primary">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="cameraResultsContainer"></div>
+                <div id="paginationControls" class="mt-3 text-center"></div>
+                <div class="modal-footer">
+                    <button id="closeHistoryButton" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check Camera Structure -->
+    @* <div class="custom-loading-modal" id="loadingModal" tabindex="-1" role="dialog" aria-labelledby="checkCameraModalLabel" aria-hidden="true"> *@
+    @*     <div class="modal-dialog" role="document"> *@
+    @*         <div class="custom-modal-content"> *@
+    @*             <h4 id="modalTitle"></h4> *@
+    @*             <div id="loadingMessage" style="display: block;"></div> *@
+    @*             <div id="failedCamerasList" style="display: none;"> *@
+    @*                 <h5>Failed Cameras:</h5> *@
+    @*                 <ul id="failedCameras"></ul> *@
+    @*             </div> *@
+    @*             <div class="modal-footer"> *@
+    @*                 <button type="button" class="btn btn-secondary">Close</button> *@
+    @*             </div> *@
+    @*         </div> *@
+    @*     </div> *@
+    @* </div> *@
+
+    <!-- Add Camera Modal -->
+    <div class="modal fade" id="addCameraModal" tabindex="-1" role="dialog" aria-labelledby="addCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCameraModalLabel">Add Camera</h5>
+                </div>
+                <form id="addCameraForm" action="@Url.Action("AddCamera", "Camera1")" method="post" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <!-- Dropdowns Section -->
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="locationNameDropdown" style="white-space: nowrap;">Select Location</label>
+                                    <select id="locationNameDropdown" class="form-control" name="selectedName" required>
+                                        <option value="">Select</option>
+                                        @foreach (var location in locations.DistinctBy(l => l.Name))
+                                        {
+                                            <option value="@location.Name">@location.Name</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="locationLevelDropdown" style="white-space: nowrap;">Select Level</label>
+                                    <select id="locationLevelDropdown" class="form-control" name="selectedLevel" required>
+                                        <option value="">Select</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Camera Name Input -->
+                        <div class="form-group">
+                            <label for="cameraName">Camera Name</label>
+                            <input type="text" class="form-control" id="cameraName" name="Name" required />
+                        </div>
+
+                        <!-- Camera URL Input -->
+                        <div class="form-group">
+                            <label for="cameraUrl">Camera URL</label>
+                            <input type="text" class="form-control" id="cameraUrl" name="Url" required />
+                        </div>
+
+                        <!-- Camera Image Input -->
+                        <div class="form-group">
+                            <label for="cameraImage">Camera Image</label>
+                            <input type="file" class="form-control" id="cameraImage" name="CameraImage" accept="image/*" onchange="previewImage(event)" />
+                        </div>
+                        <div class="form-group">
+                            <label>Image Preview:</label><br />
+                            <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%; height: auto;" />
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="add-location-camera">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Camera Modal -->
+    <div class="modal fade" id="viewCameraModal" tabindex="-1" role="dialog" aria-labelledby="viewCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewCameraModalLabel">View Camera Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="viewCameraName">Camera Name</label>
+                        <input type="text" class="form-control" id="viewCameraName" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="viewCameraUrl">Camera URL</label>
+                        <input type="text" class="form-control" id="viewCameraUrl" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="viewLocationName">Location</label>
+                        <input type="text" class="form-control" id="viewLocationName" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="viewLocationLevel">Level</label>
+                        <input type="text" class="form-control" id="viewLocationLevel" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>Camera Image Preview:</label><br />
+                        <img id="viewImagePreview" src="#" alt="Image Preview" style="max-width: 100%; height: auto;" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Camera Modal -->
+    <div class="modal fade" id="editCameraModal" tabindex="-1" role="dialog" aria-labelledby="editCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCameraModalLabel">Edit Camera</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="editCameraForm" action="@Url.Action("Edit", "Camera1")" method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="editCameraId" name="CameraId" />
+                    <div class="modal-body">
+                        <!-- Location and Level Dropdowns -->
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="editLocationNameDropdown">Select Location</label>
+                                    <select id="editLocationNameDropdown" class="form-control" name="selectedName" required>
+                                        <option value="">Select</option>
+                                        @foreach (var location in locations.DistinctBy(l => l.Name))
+                                        {
+                                            <option value="@location.Name">@location.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editLocationLevelDropdown">Select Level</label>
+                                    <select id="editLocationLevelDropdown" class="form-control" name="selectedLevel" required>
+                                        <option value="">Select</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Camera Name Input -->
+                        <div class="form-group">
+                            <label for="editCameraName">Camera Name</label>
+                            <input type="text" class="form-control" id="editCameraName" name="Name" required />
+                        </div>
+
+                        <!-- Camera URL Input -->
+                        <div class="form-group">
+                            <label for="editCameraUrl">Camera URL</label>
+                            <input type="text" class="form-control" id="editCameraUrl" name="Url" required />
+                        </div>
+
+                        <!-- Camera Image Input -->
+                        <div class="form-group">
+                            <label for="editCameraImage">Camera Image</label>
+                            <input type="file" class="form-control" id="editCameraImage" name="CameraImage" accept="image/*" onchange="previewEditImage(event)" />
+                        </div>
+                        <div class="form-group">
+                            <label>Image Preview:</label><br />
+                            <img id="editImagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%; height: auto;" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div id="notificationModal" class="modal" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Notification Method</h5>
+                    <button type="button" class="close" onclick="closeModal()" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Please select a method to notify the user:</p>
+                    <form id="methodForm">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="telegram" value="Telegram" checked>
+                            <label class="form-check-label" for="telegram">Telegram</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="sms" value="SMS">
+                            <label class="form-check-label" for="sms">SMS</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="whatsapp" value="WhatsApp">
+                            <label class="form-check-label" for="whatsapp">WhatsApp</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="both" value="Both">
+                            <label class="form-check-label" for="both">Both</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="submitMethod()">Submit</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Camera Modal -->
+    <div class="modal fade" id="deleteCameraModal" tabindex="-1" role="dialog" aria-labelledby="deleteCameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCameraModalLabel">Delete Camera</h5>
+                </div>
+                <form id="deleteCameraForm" action="@Url.Action("Delete", "Camera1")" method="post">
+                    <input type="hidden" id="deleteCameraId" name="CameraId" />
+                    <input type="hidden" id="deleteCameraName" name="CameraName" />
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this camera: <strong></strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Fetch initial results when the modal is opened
+            $('#showResultsButton').on("click", function() {
+                fetchResults(currentPage);
+                $("#cameraCheckResultsModal").modal('show');
+            })
+
+            $('#addCamera').click(function() {
+                $('#addCameraModal').modal('show');
+            });
+
+            $('#addCameraForm').submit(function(e) {
+                var fileInput = $('#cameraImage')[0];
+                if (fileInput.files.length > 0 && fileInput.files[0].size > 5242880) { // 5MB limit
+                    e.preventDefault();
+                    alert('File size too large. Please select an image less than 5MB.');
+                }
+            });
+
+            $('#locationNameDropdown').change(function() {
+                var locationName = $(this).val();
+
+                if (locationName) {
+                    $.ajax({
+                        url: '@Url.Action("GetLevels")',
+                        type: 'GET',
+                        data: { name: locationName },
+                        success: function(data) {
+                            $('#locationLevelDropdown').empty().append('<option value="">Select</option>');
+                            $.each(data, function(index, value) {
+                            $('#locationLevelDropdown').append('<option value="' + value + '">' + value + '</option>');
+                        });
+                            $('#locationLevelDropdown').show(); // Show dropdown on success
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error); // Log error if any
+                        }
+                    });
+                } else {
+                    $('#locationLevelDropdown').hide(); // Hide dropdown if no selection
+                }
+            });
+
+            $('#editLocationNameDropdown').change(function() {
+                var locationName = $(this).val();
+
+                if (locationName) {
+                    $.ajax({
+                        url: '@Url.Action("GetLevels")',
+                        type: 'GET',
+                        data: { name: locationName },
+                        success: function(data) {
+                            $('#editLocationLevelDropdown').empty().append('<option value="">Select</option>');
+                            $.each(data, function(index, value) {
+                                $('#editLocationLevelDropdown').append('<option value="' + value + '">' + value + '</option>');
+                            });
+                            $('#editLocationLevelDropdown').show(); // Show dropdown on success
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(error); // Log error if any
+                        }
+                    });
+                } else {
+                    $('#editLocationLevelDropdown').hide(); // Hide dropdown if no selection
+                }
+            });
+
+            // $("#checkAllCamerasButton").click(function () {
+            //     $.ajax({
+            //         url: '@Url.Action("CheckAllCameras")',
+            //         type: 'POST',
+            //         contentType: 'application/json',
+            //         success: function (data) {
+            //             alert(data.message);
+            //         },
+            //         error: function (xhr, status, error) {
+            //             console.error("There was a problem with the request:", error);
+            //         }
+            //     });
+            // });
+        });
+
+        function reset() {
+            document.getElementById("filterCameraName").value = "";
+            document.getElementById("filterStatus").value = "";
+            document.getElementById("filterStartDate").value = "";
+            document.getElementById("filterEndDate").value = "";
+        }
+
+        document.querySelector(".close").addEventListener("click", reset);
+
+        let currentPage = 1;
+        const pageSize = 20;
+
+        function fetchResults(page = 1) {
+            // Get filter values
+            const cameraName = document.getElementById("filterCameraName").value;
+            const status = document.getElementById("filterStatus").value;
+            const startDate = document.getElementById("filterStartDate").value;
+            const endDate = document.getElementById("filterEndDate").value;
+
+            // Build query parameters
+            const queryParams = new URLSearchParams({
+                page,
+                pageSize,
+                cameraName,
+                status,
+                startDate,
+                endDate,
+            });
+
+            fetch(`/Camera1/GetCameraCheckResults?${queryParams.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.success) {
+                const resultsContainer = document.getElementById("cameraResultsContainer");
+                const paginationControls = document.getElementById("paginationControls");
+
+                if (data.results.length > 0) {
+                    // Build results table
+                    let resultsHtml = '<table class="table table-bordered">';
+                    resultsHtml += '<thead><tr><th>Camera ID</th><th>Camera Name</th><th>Status</th><th>Message</th><th>Timestamp</th></tr></thead><tbody>';
+
+                    data.results.forEach(result => {
+                        const statusClass =
+                            result.status === 'Working'
+                                ? 'status-working'
+                                : result.status === 'Not Working'
+                                ? 'status-not-working'
+                                :  result.status === 'Blurry'
+                                ? 'status-blurry'
+                                :  result.status === 'Dark'
+                                ? 'status-dark'
+                                : 'status-unknown';
+
+
+                        resultsHtml += `
+                        <tr>
+                            <td>${result.cameraId}</td>
+                            <td>${result.cameraName}</td>
+                            <td class="${statusClass}">${result.status}</td>
+                            <td>${result.note}</td>
+                            <td>${result.timestamp}</td>
+                        </tr>
+                        `;
+                    });
+
+                    resultsHtml += '</tbody></table>';
+                    resultsContainer.innerHTML = resultsHtml;
+
+                    // Build pagination controls
+                    const { currentPage, totalPages } = data.pagination;
+                    let paginationHtml = '';
+
+                    if (totalPages > 1) {
+                        if (currentPage > 1) {
+                            paginationHtml += `<button class="btn btn-secondary" onclick="fetchResults(${currentPage - 1})">Previous</button>`;
+                        }
+                        paginationHtml += ` <span>Page ${currentPage} of ${totalPages}</span> `;
+                        if (currentPage < totalPages) {
+                            paginationHtml += `<button class="btn btn-secondary" onclick="fetchResults(${currentPage + 1})">Next</button>`;
+                        }
+                    }
+
+                    paginationControls.innerHTML = paginationHtml;
+                    } else {
+                        resultsContainer.innerHTML = '<p class="text-center">Don\'t have any result for checking</p>';
+                        paginationControls.innerHTML = '';
+                    }
+                } else {
+                    alert("Failed to fetch results. Please try again.");
+                }
+                })
+                .catch(error => console.error('Error fetching results:', error));
+            }
+
+        function resetFilter(filterId) {
+            // Clear the value of the specified filter input
+            document.getElementById(filterId).value = "";
+
+            // Fetch results with the updated filters
+            fetchResults(1); // Reset to the first page
+        }
+
+        document.getElementById("closeHistoryButton").addEventListener("click", function () {
+            reset();
+        });
+
+        // Fetch results when the "Apply Filters" button is clicked
+        document.getElementById("applyFiltersButton").addEventListener("click", function () {
+            currentPage = 1; // Reset to the first page
+            fetchResults(currentPage);
+        });
+
+        function previewImage(event) {
+            var file = event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#imagePreview')
+                        .attr('src', e.target.result)
+                        .css({
+                            'display': 'block',
+                            'width': '200px',
+                            'height': '200px',
+                            'object-fit': 'cover'
+                        });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewEditImage(event) {
+            var file = event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#editImagePreview')
+                        .attr('src', e.target.result)
+                        .css({
+                            'display': 'block',
+                            'width': '200px',
+                            'height': '200px',
+                            'object-fit': 'cover'
+                        });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function editCamera(button) {
+            const $btn = $(button);
+            const cameraId      = $btn.data('id');
+            const cameraName    = $btn.data('name');
+            const cameraUrl     = $btn.data('url');
+            const cameraImage   = $btn.data('camera-image') || null;
+            const locationName  = $btn.data('location-name') || '';
+            const locationLevel = $btn.data('location-level') || '';
+
+            const $modal     = $('#editCameraModal');
+            const $nameSel   = $modal.find('#editLocationNameDropdown');
+            const $levelSel  = $modal.find('#editLocationLevelDropdown');
+
+            // Basic fields
+            $modal.find('#editCameraId').val(cameraId);
+            $modal.find('#editCameraName').val(cameraName);
+            $modal.find('#editCameraUrl').val(cameraUrl);
+
+            // Show existing image if any
+            if (cameraImage) {
+                $modal.find('#editImagePreview')
+                    .attr('src', 'data:image/jpeg;base64,' + cameraImage)
+                    .css({ display: 'block', width: '200px', height: '200px', objectFit: 'cover' });
+            } else {
+                $modal.find('#editImagePreview').hide();
+            }
+
+            $nameSel.val(locationName);
+
+            $.get('@Url.Action("GetLevels", "Camera1")', { name: locationName })
+                .done(function(levels){
+                    $levelSel.empty().append('<option value="">Select</option>');
+                    if (Array.isArray(levels)) {
+                        levels.forEach(function(v){
+                            $levelSel.append('<option value="'+ v +'">'+ v +'</option>');
+                        });
+                    }
+                    $levelSel.val(locationLevel);
+                })
+                .always(function(){
+                    $modal.modal('show');
+                });
+        }
+
+        function viewCamera(button) {
+            const $btn = $(button);
+            const cameraName    = $btn.data('name');
+            const cameraUrl     = $btn.data('url');
+            const cameraImage   = $btn.data('camera-image') || null;
+            const locationName  = $btn.data('location-name') || 'N/A';
+            const locationLevel = $btn.data('location-level') || 'N/A';
+
+            // Populate the modal fields
+            $('#viewCameraModal').find('#viewCameraName').val(cameraName);
+            $('#viewCameraModal').find('#viewCameraUrl').val(cameraUrl);
+            $('#viewCameraModal').find('#viewLocationName').val(locationName || 'N/A'); // Display location name
+            $('#viewCameraModal').find('#viewLocationLevel').val(locationLevel || 'N/A'); // Display location level
+
+            // Modify image display logic
+            if (cameraImage) {
+                $('#viewCameraModal').find('#viewImagePreview')
+                    .attr('src', 'data:image/jpeg;base64,' + cameraImage)
+                    .css({
+                        'display': 'block',
+                        'width': '200px',
+                        'height': '200px',
+                        'object-fit': 'cover'
+                    });
+            } else {
+                $('#viewCameraModal').find('#viewImagePreview')
+                    .attr('src', '')
+                    .hide();
+            }
+
+            // Open the modal
+            $('#viewCameraModal').modal('show');
+        }
+
+        function openNotificationModal() {
+            document.getElementById("notificationModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("notificationModal").style.display = "none"; // Hide modal
+        }
+
+        function submitMethod() {
+            let selectedMethod = document.querySelector('input[name="method"]:checked').value; // Get selected method
+
+            fetch('/Camera1/CheckAllCameras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Method: selectedMethod }) // Send selected method
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message); // Show success/failure message
+                closeModal(); // Close modal after submission
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function sendCheckRequest(method) {
+            document.getElementById("notificationModal").style.display = "none";
+            fetch('/Camera1/CheckAllCameras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationMethod: method })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+    </script>
+</body>
+</html>

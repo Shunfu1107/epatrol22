@@ -1,0 +1,211 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Libraries.ExtendedUserIdentity.Models.ViewModels.ModuleViewModel
+
+@{
+    ViewBag.Title = "Module";
+    ViewBag.SubTitle = "Manage modules";
+}
+
+@section Styles{
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+}
+
+@section Scripts{
+    <script type="text/javascript">
+
+        if (typeof pms == 'undefined') pms = {};
+        if (typeof pms.keys == 'undefined') pms.keys = {};
+        if (typeof pms.keys.module == 'undefined') pms.keys.module = {};
+
+        pms.keys.module.view = '@AppModuleKeys.Module.ViewPrimaryKey'
+        pms.keys.module.removeModule = '@AppModuleKeys.Module.RemovePrimaryKey'
+        pms.keys.module.addModule = '@AppModuleKeys.Module.AddPrimaryKey'
+        pms.keys.module.editModule = '@AppModuleKeys.Module.EditPrimaryKey'
+        pms.keys.module.manageModule = '@AppModuleKeys.Module.ManagePrimaryKey'
+        pms.keys.module.managePermission = '@AppModuleKeys.Module.ManagePermissionPrimaryKey'
+
+    </script>
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.module.js"></script>
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+}
+
+<div id="mel-layer" style="display:none;">
+
+    <!-- MODULE VIEW -->
+    <div id="modules-view-grid" class="mel-section">
+        <div class="box box-info">
+            <div class="box-body table-responsive">
+                <table id="modules-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Name</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="modules-view-register" id="btn-add-module" data-permission-id="@AppModuleKeys.Module.AddPrimaryKey" data-permission-act="mel-enable|mel-disable">Create Module</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-register-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-register-module", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Create Module</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!-- MODULE REGISTER -->
+                        <div class="mel-section" id="modules-view-register">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.Name, new { @class = "col-md-3 control-label required-field" })
+                                <div class="col-md-9">
+                                    @Html.TextBoxFor(m => m.Register.Name, new { id = "txt-register-module-name", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Register.Name)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-edit-module">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-module", action = "#" }))
+                {
+
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Module</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!-- MODULE EDIT BY MODAL !-->
+                        <div class="mel-section" id="modules-view-edit">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.Name, new { @class = "col-md-3 control-label" })
+                                <div class="col-md-8">
+                                    @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-edit-module-name", @class = "form-control", style = "display:inline-block;" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+
+
+
+
+    <!-- MODULE MANAGE -->
+    <div id="modules-view-manage" class="mel-section">
+        <div class="box box-info">
+            <div class="box-header with-border">
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-manage-module", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="form-group">
+                        <label class="col-md-2 control-label">Permission(s) for</label>
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-manage-module-name", disabled = "disabled", @class = "form-control", style = "display:inline-block;width:80%" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                            <!--Previously had edit function for this-->
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <div class="box-body">
+                <table id="permission-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" data-trigger="modules-view-register" id="btn-manage-close">Back</button>
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="modules-view-register" id="btn-add-permission" data-permission-id="@AppModuleKeys.Module.ManagePermissionPrimaryKey" data-permission-act="mel-enable|mel-disable">Manage</button>
+            </div>
+
+
+        </div>
+    </div>
+
+
+    <!--VIEW ADD PERMISSION-->
+    <div id="module-view-manage-permission" class="mel-section">
+        <div class="box box-info">
+            <div class="box-body">
+                <div class="callout callout-info">
+                    <h4><i class="icon fa fa-info-circle"></i> Note</h4>
+
+                    <p>The configuration is saved automatically when you check/uncheck the actions.</p>
+                </div>
+                <table id="permission-new-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>S/N</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" data-trigger="modules-view-register" id="btn-add-permission-close">Back</button>
+
+            </div>
+        </div>
+    </div>
+</div>

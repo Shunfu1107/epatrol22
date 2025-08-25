@@ -1,0 +1,15 @@
+hw_location : "localhost"
+face_det_kypts_model:
+  model_zoo_url: "degirum/public"
+  model_name: "yolov8n_relu6_widerface_kpts--640x640_float_openvino_multidevice_2"
+face_reid_model:
+  model_zoo_url: "degirum/public"
+  model_name : "mbf_prelu_b1--112x112_float_openvino_cpu_1"
+database:
+  name: "face_recognition.db"
+table:
+  name: "faces"
+search_params:
+    top_k: 1
+    field_name: "vector"
+    metric_type: "cosine"

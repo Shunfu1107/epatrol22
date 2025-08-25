@@ -1,0 +1,238 @@
+﻿@using AdminPortalV8.Helpers
+@model AdminPortalV8.Libraries.ExtendedUserIdentity.Models.ViewModels.AccessLevelViewModel
+
+@{
+    ViewBag.Title = "Access Level";
+    ViewBag.SubTitle = "Manage access level";
+}
+
+
+@section Styles{
+    <link rel="stylesheet" href="~/Assets/Plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+}
+
+@section Scripts{
+    <script type="text/javascript">
+
+        if (typeof pms == 'undefined') pms = {};
+        if (typeof pms.keys == 'undefined') pms.keys = {};
+        if (typeof pms.keys.accesslevel == 'undefined') pms.keys.accesslevel = {};
+
+        pms.keys.accesslevel.view = '@AppModuleKeys.AccessLevel.ViewPrimaryKey'
+        pms.keys.accesslevel.createAccessLevel = '@AppModuleKeys.AccessLevel.AddPrimaryKey'
+        pms.keys.accesslevel.manageAccessLevel = '@AppModuleKeys.AccessLevel.ManagePrimaryKey'
+        pms.keys.accesslevel.removeAccessLevel = '@AppModuleKeys.AccessLevel.RemovePrimaryKey'
+        pms.keys.accesslevel.editAccessLevelName = '@AppModuleKeys.AccessLevel.EditPrimaryKey'
+
+    </script>
+    <script src="~/Assets/Plugins/extended-user-identity/mel.addon.accesslevel.js"></script>
+
+    <script src="~/Assets/Plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/Assets/Plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+}
+
+<div id="mel-layer" style="display:none;">
+
+    <!-- ACCESSLEVEL VIEW -->
+    <div id="access-view-grid" class="mel-section">
+        <div class="box box-info">
+            <div class="box-body">
+                <table id="access-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Role</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="box-footer">
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary pull-right" data-trigger="access-view-register" id="btn-add-access" data-permission-id="@AppModuleKeys.AccessLevel.AddPrimaryKey" data-permission-act="mel-enable|mel-disable">Create Access Level</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-edit-accesslevel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-edit-accesslevel", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Edit Access Level</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!-- ACCESS LEVEL EDIT BY MODAL -->
+                        <div id="access-view-edit" class="mel-section">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Manage.Name, new { @class = "col-md-5 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-edit-access-name", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal fade" id="modal-register-access">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-register-access", action = "#" }))
+                {
+
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Create Access Level</h4>
+                    </div>
+                    <div class="modal-body">
+                        <!-- ACCESSLEVEL REGISTER -->
+                        <div id="access-view-register" class="mel-section">
+
+                            <div class="form-group">
+                                @Html.LabelFor(m => m.Register.Name, new { @class = "col-md-5 control-label required-field" })
+                                <div class="col-md-7">
+                                    @Html.TextBoxFor(m => m.Register.Name, new { id = "txt-register-access-name", @class = "form-control" })
+                                    <span class="error-block">@Html.ValidationMessageFor(m => m.Register.Name)</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                }
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+
+    <!-- ACCESSLEVEL MANAGE -->
+    <div id="access-view-manage" class="mel-section">
+        <div class="box box-info">
+            <div class="box-header with-border">
+
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-manage-access", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="form-group">
+                        <label class="col-md-2 control-label">Module(s) for</label>
+                        <div class="col-md-10">
+                            @Html.TextBoxFor(m => m.Manage.Name, new { id = "txt-manage-access-name", disabled = "disabled", @class = "form-control", style = "display:inline-block;width:80%" })
+                            <span class="error-block">@Html.ValidationMessageFor(m => m.Manage.Name)</span>
+                        </div>
+                    </div>
+
+                }
+
+
+            </div>
+
+            <div class="box-body">
+
+                <table id="permission-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>S/N</th>
+                            <th>Module</th>
+                            <th>Main Permission</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" data-trigger="access-view-register" id="btn-manage-close">Back</button>
+                <button type="button" class="mel-disable mel-section-trigger btn btn-primary" data-trigger="access-view-register" id="btn-add-permission" data-permission-id="@AppModuleKeys.Module.ManagePermissionPrimaryKey" data-permission-act="mel-enable|mel-disable">Manage</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!--ACCESSLEVEL ADD PERMISSION-->
+    <div id="module-view-manage-permission" class="mel-section">
+        <div class="box box-info">
+            <div class="box-header with-border">
+                @using (Html.BeginForm(string.Empty, string.Empty, FormMethod.Post, new { role = "form", @class = "form-horizontal", id = "form-manage-module", action = "#" }))
+                {
+                    @Html.AntiForgeryToken()
+                    ;
+
+                    <div class="form-group">
+                        <label class="col-md-2 control-label">Permission(s) for</label>
+                        <div class="col-md-10">
+                            <select class="dropdownlistStyle form-control" style="display:inline-block;width:80%" id="cmb-module-selection"></select>
+
+                            <!--Previously had edit function for this-->
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+
+            <div class="box-body">
+
+                <div class="callout callout-info">
+                    <h4><i class="icon fa fa-info-circle"></i> Note</h4>
+
+                    <p>The configuration is saved automatically when you check/uncheck the actions.</p>
+                </div>
+
+                <table id="permission-new-table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>S/N</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="box-footer text-right">
+                <button type="button" class="mel-section-trigger btn btn-warning" data-trigger="access-view-register" id="btn-add-permission-close">Back</button>
+
+            </div>
+        </div>
+    </div>
+
+
+</div>

@@ -1,0 +1,429 @@
+﻿@{
+    DateOnly todayDate = DateOnly.FromDateTime(DateTime.Now);
+    var todayDay = DateTime.Now.DayOfWeek.ToString();
+}
+<style>
+    .logo-lg, .logo-mini {
+        position: unset !important;
+    }
+
+    #notificationCount {
+        background-color: red;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        border-radius: 50%;
+        padding: 2px 4px;
+        display: none;
+    }
+
+    #notificationContainer {
+        display: none;
+        position: absolute;
+        top: 50px;
+        right: 10px;
+        width: 300px;
+        height: auto;
+        max-height: 300px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 10px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #notificationList {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        flex-grow: 1;
+    }
+
+    #notificationContainer li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        height: 80px;
+        box-sizing: border-box;
+    }
+
+        #notificationContainer li:last-child {
+            border-bottom: none;
+        }
+
+        #notificationContainer li .notification-content {
+            flex-grow: 1;
+        }
+
+        #notificationContainer li .notification-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        #notificationContainer li i {
+            margin-right: 10px;
+            font-size: 18px;
+            color: #5bc0de;
+        }
+
+    .navbar.navbar-static-top {
+        display: flex;
+        align-items: center;
+    }
+
+        .navbar.navbar-static-top .sidebar-toggle {
+            margin-right: 8px;
+        }
+
+    .navbar-custom-menu {
+        flex: 1;
+    }
+
+        .navbar-custom-menu .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            width: 100%;
+        }
+            .navbar-custom-menu .navbar-nav .grow {
+                flex: 1;
+            }
+
+    .epatrol-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50px;
+        padding: 0 18px;
+        border-radius: 6px;
+        background: rgba(255,255,255,.12);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,.35);
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all .15s ease-in-out;
+    }
+
+        .epatrol-link:hover {
+            background: rgba(255,255,255,.22);
+            border-color: rgba(255,255,255,.55);
+            color: #fff;
+        }
+
+        .epatrol-link.active {
+            background: #0b5fa5;
+            border-color: #0b5fa5;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
+            color: #fff;
+        }
+
+    .navbar-custom-menu #notificationContainer {
+        right: auto;
+        left: -140px;
+        top: 40px;
+    }
+</style>
+<header class="main-header" style="visibility: visible;">
+    <!-- Logo -->
+    <a href="@Url.Action("Index", "Dashboard")" class="logo">
+        <!-- mini logo for sidebar mini 50x50 pixels -->
+        <img class="logo-mini" style="padding: 7px;" width="50" height="50" src="~/Assets/Image/BS Mini Sidebar Logo.png">
+        @*<span class="logo-mini"><b>A</b>P</span>*@
+        <!-- logo for regular state and mobile devices -->
+        @* <img class="logo-lg" style="padding: 7px;" width="225" height="50" src="~/Assets/Image/BS Sidebar Logo.png"> *@
+        <h2 style="margin-top:10px;margin-bottom:0px"><b>MQ</b>uest</h2>
+        @*<span class="logo-lg"><b>Admin</b> Portal</span>*@
+    </a>
+
+    <!-- Header Navbar: style can be found in header.less -->
+    <nav class="navbar navbar-static-top">
+        <!-- Sidebar toggle button-->
+        @* @if (Context.User.Identity.IsAuthenticated)
+        {*@
+        <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
+            <span class="sr-only">Toggle navigation</span>
+            <i class="fas fa-bars"></i>
+        </a>
+        <div class="navbar-custom-menu">
+            <ul class="nav navbar-nav">
+                @* @if(ViewBag.Filter == true)
+                {
+                <li class="" id="displayRest">
+                <select class="form-control" style="margin:10px 5px" id="ddlRestaurant">
+
+                </select>
+                </li>
+                } *@
+
+                @{
+                    var ctl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
+                    string[] epatrolControllers = { "route", "checkpoints", "location", "schedule", "checklist" };
+                    bool onEpatrol = epatrolControllers.Contains(ctl);
+                    Func<string, string> active = name => ctl == name.ToLower() ? "active" : "";
+                }
+
+                @if (onEpatrol)
+                {
+                    <li>
+                        <a class="epatrol-link @active("route")" href="@Url.Action("Index","Route")">Route</a>
+                    </li>
+                    <li>
+                        <a class="epatrol-link @active("checkpoints")" href="@Url.Action("Index","Checkpoints")">Checkpoints</a>
+                    </li>
+                    <li>
+                        <a class="epatrol-link @active("location")" href="@Url.Action("Index","Location")">Location</a>
+                    </li>
+                    <li>
+                        <a class="epatrol-link @active("schedule")" href="@Url.Action("Index","Schedule")">Schedule</a>
+                    </li>
+                    <li>
+                        <a class="epatrol-link @active("checklist")" href="@Url.Action("Index","Checklist")">Checklist</a>
+                    </li>
+                }
+
+                <li class="grow"></li>
+
+                <li class="dropdown">
+                    <a href="#" id="notificationToggle" class="sidebar-toggle notification-toggle" role="button">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount">0</span>
+                    </a>
+                    <div id="notificationContainer">
+                        <ul id="notificationList">
+                            <!-- Notifications will be inserted here dynamically -->
+                        </ul>
+                    </div>
+                </li>
+                <!-- User Account: style can be found in dropdown.less -->
+                <li class="dropdown user user-menu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                        <i class="glyphicon glyphicon-user" style="padding-right:10px;"></i><span class="hidden-xs">@User.Identity.Name</span>
+                    </a>
+                    <ul class="dropdown-menu" style="text-align:center;max-width:200px;">
+                        <!-- User image -->
+                        <li>
+                            <a href="@Url.Action("Index", "Profile")">Profile</a>
+                        </li>
+                        <!-- Menu Body -->
+                        <li>
+                            @* @using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm" }))
+                            {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" value="" name="autologout" id="autologout" />
+                            <a href="javascript:document.getElementById('logoutForm').submit()">Sign out</a>
+                            }*@
+                            <form id="logoutForm" class="dropdown-item" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" value="" name="autologout" id="autologout" />
+                                <a href="javascript:document.getElementById('logoutForm').submit()">Sign out</a>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        @*}*@
+    </nav>
+</header>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+    // Establish SignalR connection
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub") // Ensure this matches your hub route
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    // Start the connection
+    connection.start()
+        .then(() => console.log("SignalR Connected"))
+        .catch(err => console.error("SignalR Connection Error:", err));
+
+    // Listen for notifications from the server
+    connection.on("ReceiveNotification", (notifications) => {
+        console.log("Received notifications:", notifications);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('notificationContainer').style.display = 'none';
+        updateNotificationCount();
+    });
+
+    document.getElementById('notificationToggle').addEventListener('click', async function (event) {
+        event.preventDefault();
+        const container = document.getElementById('notificationContainer');
+        const isVisible = container.style.display === 'block';
+        container.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            await fetchNotifications();
+        }
+    });
+
+    // async function fetchNotifications() {
+    //     try {
+    //         const response = await fetch('/Dashboard/GetNotifications');
+    //         const result = await response.json();
+
+    //         const response_cameraCondition = await fetch('/api/jobresults');
+    //         const result_cameraCondition = await response_cameraCondition.json();
+
+    //         const notifications = result.data || [];
+    //         const notification_camerasCondition = result_cameraCondition || [];
+
+    //         console.log(notification_camerasCondition)
+    //         console.log(notification_camerasCondition.length)
+
+            // Filter to keep only the latest notification for each CameraId
+    //         const latestCameraNotifications = notification_camerasCondition.reduce((acc, current) => {
+    //             const existing = acc.find(item => item.cameraId === current.cameraId);
+    //             if (!existing || new Date(current.timestamp) > new Date(existing.timestamp)) {
+    //                 if (existing) {
+    //                     acc.splice(acc.indexOf(existing), 1); Remove the older one
+    //                 }
+    //                 acc.push(current); Add the newer one
+    //             }
+    //             return acc;
+    //         }, []);
+
+    //         const notificationContainer = document.getElementById('notificationList');
+    //         notificationContainer.innerHTML = '';
+
+    //         if (notifications.length > 0 || latestCameraNotifications.length > 0) {
+    //             if (notifications.length > 0) {
+    //                 notifications.forEach(notification => {
+    //                     const listItem = document.createElement('li');
+    //                     listItem.style.padding = '10px';
+    //                     listItem.style.borderBottom = '1px solid #eee';
+    //                     listItem.innerHTML = `
+    //                         <div class="notification-content">
+    //                             <b>${notification.routeName}</b> - ${notification.checkPointName}
+    //                             <p>${notification.note}</p>
+    //                         </div>
+    //                         <div class="notification-time">${notification.time}</div>
+    //                     `;
+    //                     notificationContainer.appendChild(listItem);
+    //                 });
+    //             }
+
+    //             if (latestCameraNotifications.length > 0) {
+    //                 latestCameraNotifications.forEach(notification => {
+    //                     const listItem = document.createElement('li');
+    //                     listItem.style.padding = '10px';
+    //                     listItem.style.borderBottom = '1px solid #eee';
+    //                     listItem.innerHTML = `
+    //                         <div class="notification-content">
+    //                             <b>Camera Name:</b> ${notification.cameraName} <br>
+    //                             <b>Status:</b> ${notification.status}
+    //                             <p>${notification.filePath ? `File Path: ${notification.filePath}` : ''}</p>
+    //                         </div>
+    //                         <div class="notification-time">
+    //                             <i>${new Date(notification.timestamp).toLocaleString()}</i>
+    //                         </div>
+    //                     `;
+    //                     notificationContainer.appendChild(listItem);
+    //                 });
+    //             }
+    //         } else {
+    //             const noNotifications = document.createElement('li');
+    //             noNotifications.style.padding = '10px';
+    //             noNotifications.textContent = 'No new notifications';
+    //             notificationContainer.appendChild(noNotifications);
+    //         }
+    //         Update the notification count after fetching and processing notifications
+    //         await updateNotificationCount();
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //     }
+    // }
+
+    // async function updateNotificationCount() {
+    //     try {
+    //         const response = await fetch('/Dashboard/GetNotifications');
+    //         const result = await response.json();
+    //         const response_cameraCondition = await fetch('/api/jobresults');
+    //         const results_cameraCondition = await response_cameraCondition.json();
+
+    //         if (result.success) {
+    //             const notificationCount = document.getElementById('notificationCount');
+    //             const notifications = result.data || [];
+    //             const notification_cameraCond = results_cameraCondition || [];
+
+    //             if (notifications.length > 0 || (notification_cameraCond && notification_cameraCond.length > 0)) {
+    //                 console.log("Notification count:", notifications.length + notification_cameraCond.length);
+    //                 notificationCount.textContent = notifications.length + notification_cameraCond.length;
+    //                 notificationCount.style.display = 'inline-block';
+    //             } else {
+    //                 notificationCount.style.display = 'none';
+    //             }
+    //         }
+    //         else {
+    //             console.error('Error updating notification count:', result.error);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //     }
+    // }
+
+        async function fetchNotifications() {
+        try {
+            const response = await fetch('/Dashboard/GetStoredNotifications');
+            const result = await response.json();
+
+            const notificationContainer = document.getElementById('notificationList');
+            notificationContainer.innerHTML = '';
+
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(notification => {
+                    const listItem = document.createElement('li');
+                    listItem.style.padding = '10px';
+                    listItem.style.borderBottom = '1px solid #eee';
+                    listItem.innerHTML = `
+                        <div class="notification-content">
+                            <b>${notification.device}</b> - ${notification.type}
+                            <p>${notification.note || ''}</p>
+                        </div>
+                        <div class="notification-time">
+                            <i>${new Date(notification.timestamp).toLocaleString()}</i>
+                        </div>
+                    `;
+                    notificationContainer.appendChild(listItem);
+                });
+            } else {
+                const noNotifications = document.createElement('li');
+                noNotifications.style.padding = '10px';
+                noNotifications.textContent = 'No new notifications';
+                notificationContainer.appendChild(noNotifications);
+            }
+
+            await updateNotificationCount(); // make sure to update bell count
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    }
+
+        async function updateNotificationCount() {
+        try {
+            const response = await fetch('/Dashboard/GetStoredNotifications');
+            const result = await response.json();
+
+            const notificationCount = document.getElementById('notificationCount');
+            if (result.success && result.data.length > 0) {
+                notificationCount.textContent = result.data.length;
+                notificationCount.style.display = 'inline-block';
+            } else {
+                notificationCount.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error updating notification count:', error);
+        }
+    }
+
+</script>

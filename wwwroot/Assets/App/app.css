@@ -1,0 +1,73 @@
+﻿.error-block {
+    display: block;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    color: #d33724;
+}
+.user-menu .dropdown-menu a{
+    padding:10px;
+    display:block;
+}
+
+.mel-section .dialog-search-icon, .mel-section #btn-edit-access-find {
+    padding-top: 10px;
+}
+@media (max-width: 768px) {
+    .btn-responsive {
+        padding: 2px 4px;
+        font-size: 80%;
+        line-height: 1;
+        border-radius: 3px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+    .btn-responsive {
+        padding: 4px 9px;
+        font-size: 90%;
+        line-height: 1.2;
+    }
+}
+
+.buttons-pdf {
+    background-color: #dd4c39 !important;
+    border: #2e6da4 !important;
+    /*font-family: Arial, Geneva, Arial, Helvetica, sans-serif !important;*/
+    font-size: 15px !important;
+    color: #fff !important;
+    /*letter-spacing: 1px !important;*/
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+    margin-left: 50px !important;
+    margin-bottom: 30px !important;
+    border-radius: 4px !important;
+    line-height: 1.5 !important;
+    text-decoration: none !important;
+}
+
+.buttons-excel {
+    background-color: #00a65b !important;
+    border: #2e6da4 !important;
+    /*font-family: Arial, Geneva, Arial, Helvetica, sans-serif !important;*/
+    font-size: 15px !important;
+    color: #fff !important;
+    /*letter-spacing: 1px !important;*/
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+    border-radius: 4px !important;
+    line-height: 1.5 !important;
+    text-decoration: none !important;
+}
+.input-font{
+    font-weight :normal
+}
+.fc-event-time, .fc-event-title {
+    padding: 0 1px;
+    white-space: nowrap;
+}
+
+.fc-title {
+    white-space: normal;
+}
