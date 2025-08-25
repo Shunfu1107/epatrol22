@@ -211,4 +211,20 @@ app.MapRazorPages();
 
 AuthManager.Initialize();
 
+// Ensure ffmpeg processes are stopped when the app is stopping/stopped
+var lifetime = app.Lifetime;
+try
+{
+    var ffmpegService = app.Services.GetRequiredService<IFfmpegProcessService>();
+    lifetime.ApplicationStopping.Register(() =>
+    {
+        try { ffmpegService.StopProcess(); } catch { }
+    });
+    lifetime.ApplicationStopped.Register(() =>
+    {
+        try { (ffmpegService as IDisposable)?.Dispose(); } catch { }
+    });
+}
+catch { }
+
 app.Run();
