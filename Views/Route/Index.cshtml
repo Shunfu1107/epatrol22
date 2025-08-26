@@ -238,107 +238,139 @@
                 `;
             }
 
-            $(document).on('click', '#edit-checkpoint', function () {
-                var newDiv = $('<div>', {
-                    class: 'rows',
-                    style: 'display: flex; margin-top: 10px'
-                });
+            function getCleanCheckpointOptionsHtml() {
+              const $first = $('#checkpoint-inputs select[name="txtEditCheckPoint[]"]').first();
+              if ($first.length) {
+                return $first.find('option').map(function () {
+                  const val = $(this).attr('value') ?? '';
+                  const txt = $(this).text();
+                  return val ? `<option value="${val}">${txt}</option>` : '';
+                }).get().join('');
+              }
 
-                var newEditCheckPoint = $('<select>', {
-                    class: 'form-control',
-                    name: 'txtEditCheckPoint[]',
-                    css: {
-                        'border-radius': '5px',
-                        'padding-left': '10px',
-                        'padding-right': '10px',
-                        'width': '92%'
-                    }
-                }).html(getCheckpointOptions());
+              const $firstAdd = $('#checkpoint-container-col select[name="txtCheckpoint[]"]').first();
+              if ($firstAdd.length) {
+                return $firstAdd.find('option').map(function () {
+                  const val = $(this).attr('value') ?? '';
+                  const txt = $(this).text();
+                  return val ? `<option value="${val}">${txt}</option>` : '';
+                }).get().join('');
+              }
 
-                var editButton = $('<i>', {
-                    class: 'fas fa-plus',
-                    id: 'edit-checkpoint',
-                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
-                });
+              return '';
+            }
 
-                var deleteButton = $('<i>', {
-                    class: 'fas fa-trash',
-                    id: 'delete-checkpoint',
-                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
-                });
+            function appendEmptyCheckpointRow($where) {
+              const optionsHtml = getCleanCheckpointOptionsHtml();
+              const $row = $(`
+                <div class="rows" style="display:flex; align-items:center;">
+                  <select class="form-control" name="txtEditCheckPoint[]"
+                          style="border-radius:5px; padding-left:10px; padding-right:10px; width:100%; margin-top:10px;" required>
+                    <option value="" selected disabled hidden>Choose here</option>
+                    ${optionsHtml}
+                  </select>
+                  <i class="fas fa-plus"  id="edit-checkpoint"  style="margin-top:10px; margin-left:10px; cursor:pointer; color:#333;"></i>
+                  <i class="fas fa-trash" id="delete-checkpoint" style="margin-top:10px; margin-left:8px; cursor:pointer; color:red;"></i>
+                </div>
+              `);
+              $row.find('select').val('');
+              $where.append($row);
+            }
 
-                newDiv.append(newEditCheckPoint);
-                newDiv.append(editButton);
-                newDiv.append(deleteButton);
-                $('#edit-checkpoint-container').append(newDiv);
+
+             $(document).off('click', '#edit-checkpoint').on('click', '#edit-checkpoint', function () {
+                appendEmptyCheckpointRow($('#checkpoint-inputs'));
             });
 
-            $(document).on('click', '#edit-schedule', function () {
-                var newDiv = $('<div>', {
-                    class: 'rows',
-                    style: 'display: flex; margin-top: 10px'
-                });
+            function getCleanScheduleOptionsHtml() {
+              const $first = $('#schedule-inputs select[name="txtEditSchedule[]"]').first();
+              if ($first.length) {
+                return $first.find('option').map(function () {
+                  const val = $(this).attr('value') ?? '';
+                  const txt = $(this).text();
+                  return val ? `<option value="${val}">${txt}</option>` : '';
+                }).get().join('');
+              }
 
-                var newEditSchedule = $('<select>', {
-                    class: 'form-control',
-                    name: 'txtEditSchedule[]',
-                    css: {
-                        'border-radius': '5px',
-                        'padding-left': '10px',
-                        'padding-right': '10px',
-                        'width': '92%'
-                    }
-                }).html(getScheduleOptions());
+              const $firstAdd = $('#schedule-container-col select[name="txtSchedule[]"]').first();
+              if ($firstAdd.length) {
+                return $firstAdd.find('option').map(function () {
+                  const val = $(this).attr('value') ?? '';
+                  const txt = $(this).text();
+                  return val ? `<option value="${val}">${txt}</option>` : '';
+                }).get().join('');
+              }
 
-                var editButton = $('<i>', {
-                    class: 'fas fa-plus',
-                    id: 'edit-schedule',
-                    style: 'cursor: pointer; color: #333; margin-top: 10px; margin-left: 10px;'
-                });
+              return '';
+            }
 
-                var deleteButton = $('<i>', {
-                    class: 'fas fa-trash',
-                    id: 'delete-schedule',
-                    style: 'cursor: pointer; color: red; margin-top: 10px; margin-left: 8px;'
-                });
+            function appendEmptyScheduleRow($where) {
+              const optionsHtml = getCleanScheduleOptionsHtml();
+              const $row = $(`
+                <div class="rows" style="display:flex; align-items:center;">
+                  <select class="form-control" name="txtEditSchedule[]"
+                          style="border-radius:5px; padding-left:10px; padding-right:10px; width:100%; margin-top:10px;" required>
+                    <option value="" selected disabled hidden>Choose here</option>
+                    ${optionsHtml}
+                  </select>
+                  <i class="fas fa-plus"  id="edit-schedule"  style="margin-top:10px; margin-left:10px; cursor:pointer; color:#333;"></i>
+                  <i class="fas fa-trash" id="delete-schedule" style="margin-top:10px; margin-left:8px; cursor:pointer; color:red;"></i>
+                </div>
+              `);
+              $row.find('select').val('');
+              $where.append($row);
+            }
 
-                newDiv.append(newEditSchedule);
-                newDiv.append(editButton);
-                newDiv.append(deleteButton);
-                $('#edit-schedule-container').append(newDiv);
+            $(document).off('click', '#edit-schedule').on('click', '#edit-schedule', function () {
+                  appendEmptyScheduleRow($('#schedule-inputs'));
             });
 
-            $(document).on('click', '#delete-checkpoint', function () {
-                const $rowsParent = $(this).closest('.rows').parent();      // container that holds the .rows
-                  const $rows = $rowsParent.children('.rows');
+            $(document).off('click', '#delete-checkpoint').on('click', '#delete-checkpoint', function () {
+                const $container = $(this).closest('.rows').parent();
+                const $rows = $container.children('.rows')
 
-                  if ($rows.length > 1) {
+                if ($rows.length > 1) {
                     $(this).closest('.rows').remove();
-                  } else {
-                    // keep one empty row; just clear selection
-                    const $sel = $(this).closest('.rows').find('select');
-                    // ensure placeholder exists and select it
-                    if ($sel.find('option[value=""]').length === 0) {
-                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
-                    }
-                    $sel.val('');
-                    // Optional: show a hint
+                } else {
+                    const $row = $(this).closest('.rows');
+                    const $inputs = $row.find('select, input, textarea');
+
+                    $inputs.each(function () {
+                        if ($(this).is('select')) {
+                            if ($(this).find('option[value=""]').length === 0) {
+                                $(this).prepend('<option value="" selected disabled hidden>Choose here</option>');
+                            }
+                            $(this).val('');
+                        } else {
+                            $(this).val('');
+                        }
+                    });
+
                     alert('At least one checkpoint is required.');
                   }
             });
 
-            $(document).on('click', '#delete-schedule', function () {
-                 const $rowsParent = $(this).closest('.rows').parent();
-                 const $rows = $rowsParent.children('.rows');
+            $(document).off('click', '#delete-schedule').on('click', '#delete-schedule', function () {
+                const $container = $(this).closest('.rows').parent();
+                const $rows = $container.children('.rows')
 
-                  if ($rows.length > 1) {
+                if ($rows.length > 1) {
                     $(this).closest('.rows').remove();
-                  } else {
-                    const $sel = $(this).closest('.rows').find('select');
-                    if ($sel.find('option[value=""]').length === 0) {
-                      $sel.prepend('<option value="" selected disabled hidden>Choose here</option>');
-                    }
-                    $sel.val('');
+                } else {
+                    const $row = $(this).closest('.rows');
+                    const $inputs = $row.find('select, input, textarea');
+
+                    $inputs.each(function () {
+                        if ($(this).is('select')) {
+                            if ($(this).find('option[value=""]').length === 0) {
+                                $(this).prepend('<option value="" selected disabled hidden>Choose here</option>');
+                            }
+                            $(this).val('');
+                        } else {
+                            $(this).val('');
+                        }
+                    });
+
                     alert('At least one schedule is required.');
                   }
             });
@@ -842,12 +874,17 @@
               $('#schedule-inputs').empty();
               if (data && Array.isArray(data.relatedSchedules) && data.relatedSchedules.length > 0) {
                 data.relatedSchedules.forEach(function (schedule) {
-                  var scheduleRow = `
+                  const optionsHtml = data.allSchedules.map(s => `
+                    <option value="${s.scheduleId}" ${String(s.scheduleId) === String(schedule.scheduleId) ? 'selected' : ''}>
+                      ${s.scheduleName}
+                    </option>
+                  `).join('');
+
+                  const scheduleRow = `
                     <div class="rows" style="display:flex;align-items:center;">
                       <select class="form-control" name="txtEditSchedule[]"
                               style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:5px;" required>
-                        <option value="${schedule.scheduleId}">${schedule.scheduleName}</option>
-                        ${data.allSchedules.map(s => `<option value="${s.scheduleId}">${s.scheduleName}</option>`).join('')}
+                        ${optionsHtml}
                       </select>
                       <i class="fas fa-plus" id="edit-schedule" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
                       <i class="fas fa-trash" id="delete-schedule" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
@@ -889,24 +926,6 @@
                 await _renderCheckpointRows($('#editRouteId').val(), next, { reset: true });
             } catch (e) { console.error(e); }
         });
-
-        // ===== Override "+" add checkpoint in EDIT to keep it filtered =====
-        $(document).off('click', '#edit-checkpoint').on('click', '#edit-checkpoint', async function () {
-            const typeId  = $('#editPatrolType').val();
-            const allowed = await _fetchAllowedByTypeId(typeId);
-            const row = `
-                <div class="rows" style="display:flex;align-items:center;">
-                    <select class="form-control js-checkpoint-select" name="txtEditCheckPoint[]"
-                        style="border-radius:5px;padding-left:10px;padding-right:10px;width:100%;margin-top:10px;" required>
-                        ${_buildOptions(allowed,'')}
-                    </select>
-                    <i class="fas fa-plus" id="edit-checkpoint" style="margin-top:10px;margin-left:10px;cursor:pointer;color:#333;"></i>
-                    <i class="fas fa-trash" id="delete-checkpoint" style="margin-top:10px;margin-left:8px;cursor:pointer;color:red;"></i>
-                </div>`;
-            $('#checkpoint-inputs').append(row);
-        });
-
-        // delete checkpoint row uses your existing delegated handler: $(document).on('click','#delete-checkpoint',...)
     </script>
 </body>
 </html>
