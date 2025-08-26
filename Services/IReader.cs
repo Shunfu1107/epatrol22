@@ -1,11 +1,11 @@
-﻿using CsvHelper;
+using CsvHelper;
 
 namespace AdminPortalV8.Services
 {
     //
     // Summary:
     //     Defines methods used to read parsed data from a CSV file.
-    public interface IReader : IReaderRow, IDisposable
+    public interface IReader : IReaderRow, System.IDisposable
     {
         //
         // Summary:
