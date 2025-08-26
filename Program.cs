@@ -222,7 +222,7 @@ try
     });
     lifetime.ApplicationStopped.Register(() =>
     {
-        try { (ffmpegService as IDisposable)?.Dispose(); } catch { }
+        try { (ffmpegService as System.IDisposable)?.Dispose(); } catch { }
     });
 }
 catch { }

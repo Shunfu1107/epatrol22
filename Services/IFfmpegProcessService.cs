@@ -11,7 +11,7 @@ namespace AdminPortalV8.Services
 		void StopProcess(int checkpointId);
 	}
 
-	public class FfmpegProcessService : IFfmpegProcessService, IDisposable
+	public class FfmpegProcessService : IFfmpegProcessService, System.IDisposable
 	{
 		private readonly Dictionary<int, Process> _ffmpegProcesses = new Dictionary<int, Process>();
 		private readonly object _syncRoot = new object();
