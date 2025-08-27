@@ -11,13 +11,28 @@ namespace AdminPortalV8.Services
         void StopProcess(int checkpointId);
     }
 
-    public class FfmpegProcessService : IFfmpegProcessService
+    public class FfmpegProcessService : IFfmpegProcessService, System.IDisposable
     {
         private readonly Dictionary<int, Process> _ffmpegProcesses = new Dictionary<int, Process>();
+        private readonly object _syncRoot = new object();
+        private bool _disposed;
+
+        public FfmpegProcessService()
+        {
+            try
+            {
+                AppDomain.CurrentDomain.ProcessExit += (s, e) => SafeStopAll();
+                Console.CancelKeyPress += (s, e) =>
+                {
+                    try { SafeStopAll(); } catch { }
+                };
+            }
+            catch { }
+        }
 
         public void StartProcess(int checkpointId, string cameraUrl)
         {
-            //var testVideoUrl = @"C:\Users\imori\10.mp4";
+            //var testVideoUrl = @"C:\\Users\\imori\\10.mp4";
             // Define paths for .ts and .m3u8 files
             var outputDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "stream");
             var segmentPath = Path.Combine(outputDir, $"output_camera{checkpointId}_%03d.ts");
@@ -27,12 +42,15 @@ namespace AdminPortalV8.Services
             // Ensure the output directory exists
             Directory.CreateDirectory(outputDir);
 
+            // Ensure no duplicate ffmpeg exists for the same checkpoint
+            try { StopProcess(checkpointId); } catch { }
+
             // Build the ffmpeg command
             var ffmpegArgs = $"-i \"{cameraUrl}\" -c:v copy -c:a aac -f hls -hls_time 2 -hls_list_size 5 " +
-                                  $"-hls_flags delete_segments -hls_segment_filename \"{segmentPath}\" \"{playlistPath}\" -v verbose";
+                              $"-hls_flags delete_segments -hls_segment_filename \"{segmentPath}\" \"{playlistPath}\" -v verbose";
 
-             // Start the ffmpeg process
-             var process = new Process
+            // Start the ffmpeg process
+            var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -56,13 +74,27 @@ namespace AdminPortalV8.Services
                 if (!string.IsNullOrEmpty(e.Data))
                     Debug.WriteLine(e.Data); // Log error output
             };
+            process.Exited += (sender, e) =>
+            {
+                try
+                {
+                    lock (_syncRoot)
+                    {
+                        _ffmpegProcesses.Remove(checkpointId);
+                    }
+                }
+                catch { }
+            };
 
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
             // Store the process in the dictionary
-            _ffmpegProcesses[checkpointId] = process;
+            lock (_syncRoot)
+            {
+                _ffmpegProcesses[checkpointId] = process;
+            }
         }
 
         public void StopProcess()
@@ -80,7 +112,10 @@ namespace AdminPortalV8.Services
                 }
 
                 // Clean up the dictionary
-                _ffmpegProcesses.Remove(checkpointId);
+                lock (_syncRoot)
+                {
+                    _ffmpegProcesses.Remove(checkpointId);
+                }
                 Debug.WriteLine($"FFmpeg process stopped and removed for checkpointId: {checkpointId}");
             }
 
@@ -122,7 +157,10 @@ namespace AdminPortalV8.Services
                     process.WaitForExit();
                 }
 
-                _ffmpegProcesses.Remove(checkpointId);
+                lock (_syncRoot)
+                {
+                    _ffmpegProcesses.Remove(checkpointId);
+                }
                 Debug.WriteLine($"FFmpeg process stopped and removed for checkpointId: {checkpointId}");
 
                 // 删除对应文件
@@ -212,7 +250,7 @@ namespace AdminPortalV8.Services
                 if (Directory.Exists(outputDir))
                 {
                     Directory.Delete(outputDir, true);
-                } 
+                }
 
                 return null; // Indicate failure or throw an exception
             }
@@ -229,6 +267,27 @@ namespace AdminPortalV8.Services
                 }
                 return null; // Indicate failure
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            try { SafeStopAll(); } catch { }
+        }
+
+        private void SafeStopAll()
+        {
+            try { StopProcess(); } catch { }
+            // Best-effort fallback: kill any lingering ffmpeg processes for this app domain
+            try
+            {
+                foreach (var p in Process.GetProcessesByName("ffmpeg"))
+                {
+                    try { if (!p.HasExited) p.Kill(); } catch { }
+                }
+            }
+            catch { }
         }
     }
 }

@@ -851,6 +851,13 @@ namespace AdminPortalV8.Controllers
             }
         }
 
+        [HttpPost]
+        public IActionResult StopStreaming()
+        {
+            _ffmpegProcessService.StopProcess();
+            return Ok();
+        }
+
         [HttpGet]
         public IActionResult GetLocations()
         {

@@ -1592,9 +1592,23 @@
                 });
             });
 
-            window.addEventListener("beforeunload", function () {
-              navigator.sendBeacon('/Dashboard/StopAllCameras');
+            function stopAllKeepalive(){
+              try {
+                navigator.sendBeacon('/Dashboard/StopAllCameras', new Blob([JSON.stringify({})], {type:'application/json'}));
+              } catch(e) {
+                fetch('/Dashboard/StopAllCameras', {method:'POST', keepalive:true, headers:{'Content-Type':'application/json'}, body:'{}'});
+              }
+            }
+            window.addEventListener('beforeunload', stopAllKeepalive);
+            window.addEventListener('pagehide', stopAllKeepalive);
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'hidden') stopAllKeepalive();
             });
+
+            window.addEventListener("beforeunload", function (event) {
+                navigator.sendBeacon("/Dashboard/StopStreaming");
+            });
+
 
             function loadCameraOptions() {
                 $.get('/Dashboard/GetCameraStreams', function (res) {
@@ -1934,7 +1948,6 @@
                         if (cam && cam.url) {
                             const id = cameraId;
 
-                            // 调用 StartCamera 开始转码
                             $.get('/Dashboard/StartCamera', {
                                 cameraUrl: cam.url,
                                 checkPointId: id
@@ -2527,24 +2540,40 @@
                 });
             });
 
+            function closeStream() {
+              const $container = $('#camera-stream-container');
 
-            function closeStream(checkPointId) {
-                $('#camera-stream-container').hide();
+              const checkPointId = $container.data('checkpointId') || $container.attr('data-checkpoint-id');
 
-                $('#camera-stream-container').data('checkpoint-id');
-                if (!checkPointId) return;
+              try {
+                const video = document.getElementById('camera-stream');
+                if (window.hls) {
+                  try { window.hls.destroy(); } catch(e) {}
+                  window.hls = null;
+                }
+                if (video) {
+                  try { video.pause(); } catch(e) {}
+                  video.removeAttribute('src');
+                  video.load();
+                }
+              } catch(e) {
+                console.warn('cleanup error:', e);
+              }
 
-                // Call backend to stop FFmpeg
-                $.ajax({
-                    url: `/Dashboard/StopCamera?checkPointId=${checkPointId}`,
-                    type: 'GET',
-                    success: function (response) {
-                        console.log(response.message);
-                    },
-                    error: function (xhr) {
-                        console.error("Error stopping camera stream:", xhr.responseJSON?.error || xhr.statusText);
-                    }
-                });
+              $container.hide();
+
+              if (!checkPointId) return;
+
+              $.ajax({
+                url: `/Dashboard/StopCamera?checkPointId=${encodeURIComponent(checkPointId)}`,
+                type: 'GET',
+                success: function (res) {
+                  console.log(res?.message ?? 'Camera stopped');
+                },
+                error: function (xhr) {
+                  console.error("Error stopping camera stream:", xhr.responseJSON?.error || xhr.statusText);
+                }
+              });
             }
         </script>
     }
