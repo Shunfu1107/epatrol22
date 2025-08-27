@@ -1,4 +1,4 @@
-﻿@using AdminPortalV8.Helpers
+@using AdminPortalV8.Helpers
 @model AdminPortalV8.Models.Epatrol.Route
 @{
     ViewBag.Title = "Patrol Map";
@@ -19,6 +19,33 @@
 @section scripts {
     <script>
         $(document).ready(function () {
+            // Preselect route if provided via query param or server ViewBag
+            var preselectedRouteId = '@(ViewBag.SelectedRouteId ?? "")';
+            if (preselectedRouteId && preselectedRouteId !== '0') {
+                setTimeout(function(){
+                    var selectEl = document.getElementById('route');
+                    if (selectEl) {
+                        selectEl.value = preselectedRouteId;
+                        if (selectEl.value === preselectedRouteId) {
+                            showImage();
+                        }
+                    }
+                }, 0);
+            } else {
+                // Fallback to localStorage if previously saved
+                var lsRouteId = localStorage.getItem('selectedRouteId');
+                if (lsRouteId) {
+                    setTimeout(function(){
+                        var selectEl = document.getElementById('route');
+                        if (selectEl) {
+                            selectEl.value = lsRouteId;
+                            if (selectEl.value === lsRouteId) {
+                                showImage();
+                            }
+                        }
+                    }, 0);
+                }
+            }
             $('#setCameraBtn').on('click', function () {
                 var routeId = document.getElementById("route").value;
                 var checkpointId = document.getElementById("checkpointId").value;

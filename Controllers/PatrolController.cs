@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using AdminPortalV8.Services;
 using AdminPortalV8.Libraries.ExtendedUserIdentity.Entities;
 using AdminPortalV8.Models.Epatrol;
@@ -68,6 +68,27 @@ namespace AdminPortalV8.Controllers
         [HttpPost]
         public async Task<IActionResult> StartAutoPatrol(int routeId)
         {
+            // Prevent starting when any checkpoint under this route has no coordinate configured
+            var hasMissingCoordinates = await _context.RouteCheckPoints
+                .Where(rcp => rcp.RouteId == routeId)
+                .AnyAsync(rcp => string.IsNullOrWhiteSpace(rcp.Coordinate));
+
+            if (hasMissingCoordinates)
+            {
+                var routeNameForAlert = await _context.Routes
+                    .Where(r => r.RouteId == routeId)
+                    .Select(r => r.RouteName)
+                    .FirstOrDefaultAsync();
+                return Json(new
+                {
+                    success = false,
+                    message = $"This route ('{routeNameForAlert}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.",
+                    requiresCoordinateSetup = true,
+                    routeId,
+                    routeName = routeNameForAlert
+                });
+            }
+
             var route = _context.Routes
                 .Include(r => r.RouteCheckPoints)
                     .ThenInclude(rcp => rcp.CheckPoint)
@@ -215,6 +236,20 @@ namespace AdminPortalV8.Controllers
         [HttpGet]
         public IActionResult StartPatrolling(int routeId)
         {
+            // Guard to ensure coordinates are set before manual patrolling
+            var hasMissingCoordinates = _context.RouteCheckPoints
+                .Where(rcp => rcp.RouteId == routeId)
+                .Any(rcp => string.IsNullOrWhiteSpace(rcp.Coordinate));
+            if (hasMissingCoordinates)
+            {
+                var routeNameForAlert = _context.Routes
+                    .Where(r => r.RouteId == routeId)
+                    .Select(r => r.RouteName)
+                    .FirstOrDefault();
+                TempData["ErrorMessage"] = $"This route ('{routeNameForAlert}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.";
+                return RedirectToAction("Index", "PatrolMap", new { routeId = routeId });
+            }
+
             var route = _context.Routes
                 .Include(r => r.PatrolType)
                 .Include(r => r.RouteCheckPoints)
@@ -264,6 +299,32 @@ namespace AdminPortalV8.Controllers
             {
                 return RedirectToAction("Index", "Patrolling", new { routeId });
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ValidateRouteCoordinates(int routeId)
+        {
+            var route = await _context.Routes
+                .Include(r => r.RouteCheckPoints)
+                .FirstOrDefaultAsync(r => r.RouteId == routeId);
+
+            if (route == null)
+            {
+                return Json(new { success = false, message = "Route not found.", routeId });
+            }
+
+            if (route.RouteCheckPoints == null || !route.RouteCheckPoints.Any())
+            {
+                return Json(new { success = false, message = "No checkpoints found for this route.", routeId, routeName = route.RouteName });
+            }
+
+            var hasMissingCoordinates = route.RouteCheckPoints.Any(rcp => string.IsNullOrWhiteSpace(rcp.Coordinate));
+            if (hasMissingCoordinates)
+            {
+                return Json(new { success = false, message = $"This route ('{route.RouteName}') still has checkpoint(s) without camera coordinates.", requiresCoordinateSetup = true, routeId, routeName = route.RouteName });
+            }
+
+            return Json(new { success = true, message = "All checkpoints have coordinates.", routeId, routeName = route.RouteName });
         }
     }
 }

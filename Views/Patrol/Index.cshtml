@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewBag.Title = "Patrol";
 }
 
@@ -60,7 +60,54 @@
                 }
 
                 handleStartPatrol(button);
-                startPatrolCycle(routeId, cameraIp, duration);
+
+                // Validate coordinates before starting auto patrol
+                $.get('/Patrol/ValidateRouteCoordinates', { routeId: routeId })
+                    .done(function (res) {
+                        if (res && res.requiresCoordinateSetup) {
+                            showCoordinateAlert(res.routeId, res.routeName);
+                            const button = $(`button[data-route-id="${routeId}"].start-patrol`);
+                            button.removeClass('disabled');
+                            button.css('pointer-events', 'auto');
+                            button.html('<i class="fas fa-play"></i> Start Auto Patrol');
+                            return;
+                        }
+                        startPatrolCycle(routeId, cameraIp, duration);
+                    })
+                    .fail(function () {
+                        showToast('Failed to validate route coordinates', 'red');
+                        const button = $(`button[data-route-id="${routeId}"].start-patrol`);
+                        button.removeClass('disabled');
+                        button.css('pointer-events', 'auto');
+                        button.html('<i class="fas fa-play"></i> Start Auto Patrol');
+                    });
+            });
+
+            // Intercept manual Start links to validate before navigating
+            $('#route-table').on('click', 'a[href^="/Patrol/StartPatrolling"]', function (e) {
+                var url = new URL(this.href, window.location.origin);
+                var routeId = url.searchParams.get('routeId');
+                var anchor = this;
+                e.preventDefault();
+                handleButtonClick(anchor);
+
+                $.get('/Patrol/ValidateRouteCoordinates', { routeId: routeId })
+                    .done(function (res) {
+                        if (res && res.requiresCoordinateSetup) {
+                            showCoordinateAlert(res.routeId, res.routeName);
+                            anchor.classList.remove('disabled');
+                            anchor.style.pointerEvents = 'auto';
+                            anchor.innerHTML = '<i class="fas fa-play"></i> Start';
+                        } else {
+                            window.location.href = anchor.href;
+                        }
+                    })
+                    .fail(function () {
+                        showToast('Failed to validate route coordinates', 'red');
+                        anchor.classList.remove('disabled');
+                        anchor.style.pointerEvents = 'auto';
+                        anchor.innerHTML = '<i class=\'fas fa-play\'></i> Start';
+                    });
             });
 
             $('#route-table').on('click', '.stop-patrol', function () {
@@ -109,6 +156,9 @@
 
                         patrolTimers[routeId] = { stopTimer };
                     } else {
+                        if (response.requiresCoordinateSetup) {
+                            showCoordinateAlert(response.routeId || routeId, response.routeName);
+                        }
                         showToast(response.message, 'red');
                         const button = $(`button[data-route-id="${routeId}"].start-patrol`);
                         button.removeClass('disabled');
@@ -117,6 +167,9 @@
                     }
                 },
                 error: function (xhr) {
+                    if (xhr.responseJSON && xhr.responseJSON.requiresCoordinateSetup) {
+                        showCoordinateAlert(xhr.responseJSON.routeId || routeId, xhr.responseJSON.routeName);
+                    }
                     var errorMessage = xhr.responseJSON?.message || 'Error starting auto patrol';
                     showToast(errorMessage, 'red');
                     const button = $(`button[data-route-id="${routeId}"].start-patrol`);
@@ -199,6 +252,23 @@
             document.body.appendChild(toast);
             setTimeout(() => (toast.style.opacity = "0"), 1000);
             setTimeout(() => document.body.removeChild(toast), 1500);
+        }
+
+        function showCoordinateAlert(routeId, routeName) {
+            var modal = document.getElementById('coordinateAlertModal');
+            var msg = document.getElementById('coordinateAlertMessage');
+            var btn = document.getElementById('coordinateAlertNavBtn');
+            msg.textContent = `This route ('${routeName || ''}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.`;
+            btn.onclick = function () {
+                window.location.href = `/PatrolMap/Index?routeId=${routeId}`;
+            };
+            if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
+                $(modal).modal('show');
+            } else {
+                if (window.confirm(msg.textContent + '\n\nOpen Patrol Map now?')) {
+                    btn.onclick();
+                }
+            }
         }
     </script>
 }
@@ -317,6 +387,25 @@
                     }
                 </tbody>
             </table>
+        </div>
+        <!-- Coordinate Alert Modal -->
+        <div class="modal fade" id="coordinateAlertModal" tabindex="-1" role="dialog" aria-labelledby="coordinateAlertModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="coordinateAlertModalLabel">Missing Camera Coordinates</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="coordinateAlertMessage"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="coordinateAlertNavBtn">Go to Patrol Map</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </body>

@@ -1,4 +1,4 @@
-﻿using AdminPortalV8.Libraries.ExtendedUserIdentity.Entities;
+using AdminPortalV8.Libraries.ExtendedUserIdentity.Entities;
 using AdminPortalV8.Models.Epatrol;
 using AdminPortalV8.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +23,7 @@ namespace AdminPortalV8.Controllers
             _ffmpegProcessService = ffmpegProcessService;
             _imageQualityAnalyzer = imageQualityAnalyzer;
         }
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? routeId)
         {
             ViewBag.Filter = true;
             try
@@ -55,6 +55,7 @@ namespace AdminPortalV8.Controllers
                     .ToListAsync();
 
                 ViewBag.Routes = routes;
+                ViewBag.SelectedRouteId = routeId;
 
                 var checkpointsWithCameras = new List<object>();
 
