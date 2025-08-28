@@ -2150,14 +2150,27 @@
             });
 
             function showCoordinateAlertDashboard(routeId, routeName) {
-                var modal = document.getElementById('coordinateAlertModal');
+                var $coordModal = $('#coordinateAlertModal');
                 var msg = document.getElementById('coordinateAlertMessage');
                 var btn = document.getElementById('coordinateAlertNavBtn');
                 msg.textContent = `This route ('${routeName || ''}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.`;
+
                 btn.onclick = function () {
+                    // Ensure any open modals are closed before navigating
+                    try { $('#patrolListModal').modal('hide'); } catch(e) {}
+                    try { $coordModal.modal('hide'); } catch(e) {}
                     window.location.href = `/PatrolMap/Index?routeId=${routeId}`;
                 };
-                $(modal).modal('show');
+
+                // If patrol list modal is open, hide it first, then show our alert modal on top
+                if ($('#patrolListModal').hasClass('show') || $('#patrolListModal').is(':visible')) {
+                    $('#patrolListModal').one('hidden.bs.modal', function () {
+                        $coordModal.modal('show');
+                    });
+                    $('#patrolListModal').modal('hide');
+                } else {
+                    $coordModal.modal('show');
+                }
             }
 
             function filterNotification(type) {
