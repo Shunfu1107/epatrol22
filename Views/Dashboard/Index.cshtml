@@ -1091,6 +1091,26 @@
         </div>
     </div>
 
+    <!-- Coordinate Alert Modal (matches Patrol page design) -->
+    <div class="modal fade" id="coordinateAlertModal" tabindex="-1" role="dialog" aria-labelledby="coordinateAlertModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="coordinateAlertModalLabel">Missing Camera Coordinates</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="coordinateAlertMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="coordinateAlertNavBtn">Go to Patrol Map</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Patrol Modal -->
     <div class="modal fade" id="patrolListModal" tabindex="-1" role="dialog" aria-labelledby="patrolListModalLabel" aria-modal="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" style="width: 85vw; height: 105vh;">
@@ -2118,23 +2138,27 @@
                 $.get('/Patrol/ValidateRouteCoordinates', { routeId: routeId })
                     .done(function (res) {
                         if (res && res.requiresCoordinateSetup) {
-                            // Reuse Patrol page modal logic if available; else fallback confirm
-                            if (typeof showCoordinateAlert === 'function') {
-                                showCoordinateAlert(res.routeId, res.routeName);
-                            } else {
-                                const msg = `This route ('${res.routeName || ''}') still has checkpoint(s) without camera coordinates. Open Patrol Map to set them?`;
-                                if (window.confirm(msg)) {
-                                    window.location.href = `/PatrolMap/Index?routeId=${routeId}`;
-                                }
-                            }
+                            showCoordinateAlertDashboard(res.routeId, res.routeName);
                         } else {
                             window.location.href = anchor.href;
                         }
                     })
                     .fail(function () {
-                        alert('Failed to validate route coordinates.');
+                        // Keep consistent UX: show a brief toast instead of alert
+                        showToast('Failed to validate route coordinates.', 'red');
                     });
             });
+
+            function showCoordinateAlertDashboard(routeId, routeName) {
+                var modal = document.getElementById('coordinateAlertModal');
+                var msg = document.getElementById('coordinateAlertMessage');
+                var btn = document.getElementById('coordinateAlertNavBtn');
+                msg.textContent = `This route ('${routeName || ''}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.`;
+                btn.onclick = function () {
+                    window.location.href = `/PatrolMap/Index?routeId=${routeId}`;
+                };
+                $(modal).modal('show');
+            }
 
             function filterNotification(type) {
                 $('#notificationTypeModal').modal('hide');
