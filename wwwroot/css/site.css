@@ -825,3 +825,7 @@ tbody tr.alert-row {
     border: 1px solid #ddd;
     border-radius: 8px;
 }
+
+#coordinateAlertModal {
+	z-index: 9999;
+}
