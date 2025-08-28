@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewBag.Title = "Dashboard";
 }
 
@@ -2089,7 +2089,7 @@
                             render: function (row) {
                                 const cameraIp = row.checkPointName.find(cp => cp.cameraIp)?.cameraIp || '';
                                 if (row.patrolTypeName === "Manual") {
-                                    return `<a href="/Dashboard/StartPatrolling?routeId=${row.routeId}" class="btn btn-primary btn-sm">
+                                    return `<a href="/Dashboard/StartPatrolling?routeId=${row.routeId}" class="btn btn-primary btn-sm dashboard-start-patrol" data-route-id="${row.routeId}">
                                                 <i class="fas fa-play"></i> Start
                                             </a>`;
                                 } else {
@@ -2108,6 +2108,33 @@
 
                 $('#patrolListModal').modal('show');
             }
+
+            // Intercept manual Start in the dashboard patrol list to validate coordinates
+            $(document).on('click', '#modal-camera-table a.dashboard-start-patrol', function (e) {
+                e.preventDefault();
+                const anchor = this;
+                const routeId = $(this).data('route-id');
+
+                $.get('/Patrol/ValidateRouteCoordinates', { routeId: routeId })
+                    .done(function (res) {
+                        if (res && res.requiresCoordinateSetup) {
+                            // Reuse Patrol page modal logic if available; else fallback confirm
+                            if (typeof showCoordinateAlert === 'function') {
+                                showCoordinateAlert(res.routeId, res.routeName);
+                            } else {
+                                const msg = `This route ('${res.routeName || ''}') still has checkpoint(s) without camera coordinates. Open Patrol Map to set them?`;
+                                if (window.confirm(msg)) {
+                                    window.location.href = `/PatrolMap/Index?routeId=${routeId}`;
+                                }
+                            }
+                        } else {
+                            window.location.href = anchor.href;
+                        }
+                    })
+                    .fail(function () {
+                        alert('Failed to validate route coordinates.');
+                    });
+            });
 
             function filterNotification(type) {
                 $('#notificationTypeModal').modal('hide');

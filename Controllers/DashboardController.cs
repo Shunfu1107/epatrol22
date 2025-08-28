@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using AdminPortalV8.Hubs;
 using AdminPortalV8.Libraries.ExtendedUserIdentity.Entities;
 using AdminPortalV8.Models.Epatrol;
@@ -554,6 +554,20 @@ namespace AdminPortalV8.Controllers
         [HttpGet]
         public IActionResult StartPatrolling(int routeId)
         {
+            // Block if any checkpoint under this route is missing coordinates
+            var hasMissingCoordinates = _context.RouteCheckPoints
+                .Where(rcp => rcp.RouteId == routeId)
+                .Any(rcp => string.IsNullOrWhiteSpace(rcp.Coordinate));
+            if (hasMissingCoordinates)
+            {
+                var routeNameForAlert = _context.Routes
+                    .Where(r => r.RouteId == routeId)
+                    .Select(r => r.RouteName)
+                    .FirstOrDefault();
+                TempData["ErrorMessage"] = $"This route ('{routeNameForAlert}') still has checkpoint(s) without camera coordinates. Please set them in Patrol Map.";
+                return RedirectToAction("Index", "PatrolMap", new { routeId = routeId });
+            }
+
             var route = _context.Routes
                 .Include(r => r.PatrolType)
                 .Include(r => r.RouteCheckPoints)
